@@ -1,0 +1,6 @@
+# Ignore external dependencies
+lib/*
+
+# Ignore generated files
+build/*
+cmake-build-debug/*

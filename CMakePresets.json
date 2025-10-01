@@ -1,0 +1,118 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base-toolchain",
+      "hidden": true,
+      "environment": {
+        "VCPKG_ROOT": "${sourceDir}/lib/vcpkg"
+      },
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "debug-toolchain",
+      "hidden": true,
+      "inherits": "base-toolchain",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Og -frecord-gcc-switches",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-toolchain",
+      "hidden": true,
+      "inherits": "base-toolchain",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -g -O3 -frecord-gcc-switches",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Default debug configuration preset",
+      "generator": "Ninja",
+      "binaryDir": "build/debug",
+      "inherits": "debug-toolchain"
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Default release configuration preset",
+      "generator": "Ninja",
+      "binaryDir": "build/release",
+      "inherits": "release-toolchain"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "app-debug",
+      "displayName": "App Debug Build",
+      "configurePreset": "debug",
+      "configuration": "Debug",
+      "jobs": 8,
+      "targets": [
+        "App"
+      ]
+    },
+    {
+      "name": "app-release",
+      "displayName": "App Release Build",
+      "configurePreset": "release",
+      "configuration": "Release",
+      "jobs": 8,
+      "targets": [
+        "App"
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "test-all-debug",
+      "configurePreset": "debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": false
+      }
+    },
+    {
+      "name": "test-all-release",
+      "configurePreset": "release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": false
+      }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "all-debug",
+      "description": "configure-build-test-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "debug"
+        },
+        {
+          "type": "build",
+          "name": "app-debug"
+        },
+        {
+          "type": "test",
+          "name": "test-all-debug"
+        }
+      ]
+    }
+  ]
+}
