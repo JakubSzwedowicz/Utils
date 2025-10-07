@@ -1,10 +1,16 @@
 add_executable(
-  ExampleTest
-  exampleTest.cpp
-)
-target_link_libraries(
-  ExampleTest
-  GTest::gtest_main
+    UtilsConfigTest
+    testConfigProvider.cpp
+    testConfigPublisher.cpp
+    testJsonConfigParser.cpp
 )
 
-gtest_discover_tests(ExampleTest)
+target_link_libraries(
+    UtilsConfigTest
+    PRIVATE
+    Utils
+    GTest::gtest_main
+)
+
+# Add the test to CTest
+gtest_discover_tests(UtilsConfigTest)
