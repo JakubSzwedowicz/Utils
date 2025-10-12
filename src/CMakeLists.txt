@@ -17,25 +17,24 @@ target_link_libraries(Utils
 target_include_directories(Utils
     INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Utils>
 )
 
-install(TARGETS Config Logging ConfigParser PublishSubscribe
-    EXPORT UtilsTargets
-    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Utils
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+install(TARGETS Utils Config Logging ConfigParser PublishSubscribe
+        EXPORT UtilsTargets
+        FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Utils
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+# This part is correct
 install(EXPORT UtilsTargets
-    FILE UtilsTargets.cmake
-    NAMESPACE Utils::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Utils
+        FILE UtilsTargets.cmake
+        NAMESPACE Utils::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/utils
 )
 
-# Optional: Keep the App executable for development/testing
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     add_executable(App main.cpp)
     target_link_libraries(App PRIVATE Utils::Utils)

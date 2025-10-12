@@ -15,7 +15,7 @@ namespace Config {
 template <typename Config>
 class JsonConfigParser : public IConfigParser<Config> {
    public:
-    JsonConfigParser() { static_assert(glz::reflectable<Config>); }
+    JsonConfigParser() { static_assert(glz::detail::reflectable<Config>); }
 
     std::shared_ptr<Config> readConfig(std::istream &jsonStream) const {
         std::string json((std::istreambuf_iterator<char>(jsonStream)),
@@ -27,12 +27,7 @@ class JsonConfigParser : public IConfigParser<Config> {
             // Fix: Correct error message for reading (not writing)
             std::cerr << "Error reading JSON config: " << static_cast<uint32_t>(ec);
 
-            // Provide specific error details for common cases
-            if (ec == glz::error_code::version_mismatch) {
-                std::cerr << " (version_mismatch - check if struct has glaze reflection metadata)";
-            } else if (ec == glz::error_code::parse_error) {
-                std::cerr << " (parse_error - invalid JSON format)";
-            } else if (ec == glz::error_code::unknown_key) {
+            if (ec == glz::error_code::unknown_key) {
                 std::cerr << " (unknown_key - JSON contains fields not in struct)";
             }
 

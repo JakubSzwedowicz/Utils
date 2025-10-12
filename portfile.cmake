@@ -14,6 +14,10 @@ vcpkg_cmake_configure(
 vcpkg_cmake_install()
 
 # Remove unnecessary files from the final package.
-vcpkg_cmake_config_fixup(PACKAGE_NAME "utils")
+vcpkg_cmake_config_fixup(
+        PACKAGE_NAME "utils"
+        CONFIG_PATH "lib/cmake/utils"
+)
+
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")

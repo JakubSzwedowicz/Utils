@@ -5,10 +5,12 @@ add_library(Utils::PublishSubscribe ALIAS PublishSubscribe)
 target_sources(PublishSubscribe
     INTERFACE
         FILE_SET HEADERS
+        BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/..
         FILES
             IPublisherSubscriber.h
 )
 target_include_directories(PublishSubscribe
     INTERFACE
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Utils>
 )
