@@ -1,4 +1,7 @@
 {
+    "name": "utils",
+    "version-string": "1.0.0",
+    "description": "A collection of utilities for C++ development.",
     "dependencies": [
         "spdlog",
         "gtest"
