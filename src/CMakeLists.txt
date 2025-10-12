@@ -20,7 +20,7 @@ target_include_directories(Utils
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-install(TARGETS Utils Config Logging ConfigParser PublishSubscribe
+install(TARGETS Config Logging ConfigParser PublishSubscribe
     EXPORT UtilsTargets
     FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Utils
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
