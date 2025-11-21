@@ -1,0 +1,55 @@
+name: Update vcpkg versions
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  test-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup vcpkg
+        run: |
+          ./lib/vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=$GITHUB_WORKSPACE/lib/vcpkg" >> $GITHUB_ENV
+
+      - name: Format Code
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang-format
+          find src -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i
+          find test -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i
+
+      - name: Setup Workspace (Install Deps & Run Tests)
+        run: |
+          chmod +x scripts/setup_workspace.sh
+          ./scripts/setup_workspace.sh
+
+      - name: Update vcpkg versions
+        run: |
+          ./lib/vcpkg/vcpkg x-add-version --all
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update vcpkg versions and format code"
+          file_pattern: "versions/ vcpkg.json src/ test/"
+
+      - name: Tag Release
+        if: success()
+        run: |
+          VERSION=$(jq -r '."version-string"' vcpkg.json)
+          TAG="v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
