@@ -37,9 +37,9 @@ class ConfigManager : public ConfigPublisher<Config> {
     void resolve() {
         auto resolved = std::make_shared<Config>();
 
-        auto providerConfigs =
-            std::apply([](auto&... p) { return std::array<std::shared_ptr<Config>, sizeof...(p)>{p->getConfig()...}; },
-                       m_providers);
+        auto providerConfigs = std::apply(
+            [](auto&... p) { return std::array<std::shared_ptr<const Config>, sizeof...(p)>{p->getConfig()...}; },
+            m_providers);
 
         auto providerNames = std::apply(
             [](auto&... p) { return std::array<std::string_view, sizeof...(p)>{p->name()...}; }, m_providers);

@@ -16,7 +16,7 @@ class DefaultConfigProvider : public IConfigProvider<Config> {
    public:
     DefaultConfigProvider() : m_config(std::make_shared<Config>()) { m_config->m_container.applyDefaults(); }
 
-    std::shared_ptr<Config> getConfig() const override { return m_config; }
+    std::shared_ptr<const Config> getConfig() const override { return m_config; }
     std::string_view name() const override { return "default"; }
 
    private:

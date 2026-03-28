@@ -15,7 +15,8 @@ class testConfigPublisher : public ::testing::Test {
     }
 
     void TearDown() override {
-        auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
+        auto manager =
+            Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager();
         manager->removeSubscriber(subscriber.get());
     }
 
@@ -25,7 +26,7 @@ class testConfigPublisher : public ::testing::Test {
 };
 
 TEST_F(testConfigPublisher, SetConfigTriggersPublish) {
-    auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
+    auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager();
     manager->addSubscriber(subscriber.get());
 
     EXPECT_EQ(subscriber->updateCount, 0);
@@ -43,7 +44,7 @@ TEST_F(testConfigPublisher, SetConfigTriggersPublish) {
 }
 
 TEST_F(testConfigPublisher, MultipleConfigUpdates) {
-    auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
+    auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager();
     manager->addSubscriber(subscriber.get());
 
     for (int i = 0; i < 5; ++i) {
@@ -54,4 +55,22 @@ TEST_F(testConfigPublisher, MultipleConfigUpdates) {
     ASSERT_NE(subscriber->lastReceivedConfig, nullptr);
     EXPECT_EQ(subscriber->lastReceivedConfig->name.get(), "config_4");
     EXPECT_EQ(subscriber->lastReceivedConfig->value.get(), 40);
+}
+
+TEST_F(testConfigPublisher, PullsInitialState) {
+    // 1. Publisher already exists from SetUp. Let's set a config on it first.
+    publisher->setConfig(testConfig);
+
+    // 2. Now a new subscriber connects and pulls immediately (true flag).
+    auto pullingSubscriber = std::make_shared<MockConfigSubscriber>(true);
+
+    // 3. It should have instantly received the cached config via the pull!
+    EXPECT_EQ(pullingSubscriber->updateCount, 1);
+    ASSERT_NE(pullingSubscriber->lastReceivedConfig, nullptr);
+    EXPECT_EQ(pullingSubscriber->lastReceivedConfig->name.get(), "publisher_test");
+    EXPECT_EQ(pullingSubscriber->lastReceivedConfig->value.get(), 200);
+
+    // Cleanup
+    auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager();
+    manager->removeSubscriber(pullingSubscriber.get());
 }

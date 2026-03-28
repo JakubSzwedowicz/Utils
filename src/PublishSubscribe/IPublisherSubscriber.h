@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <shared_mutex>
 #include <unordered_set>
 
@@ -20,11 +21,29 @@ class IPublisher {
     IPublisher();
     virtual ~IPublisher();
 
+    virtual std::optional<Message> pull() const { return std::nullopt; }
+
    protected:
     virtual void publish(const Message& message);
 
    private:
     PublishSubscribeManager<Message>* m_manager = nullptr;
+};
+
+template <typename Message>
+class StatefulPublisher : public IPublisher<Message> {
+   public:
+    StatefulPublisher() = default;
+    ~StatefulPublisher() override = default;
+
+    std::optional<Message> pull() const override;
+
+   protected:
+    void publish(const Message& message) override;
+
+   private:
+    mutable std::shared_mutex m_stateMutex;
+    std::optional<Message> m_lastMessage;
 };
 
 template <typename Message>
@@ -34,6 +53,8 @@ class ISubscriber {
     virtual ~ISubscriber();
 
     virtual void onUpdate(const Message& message) = 0;
+
+    void pull();
 
    private:
     PublishSubscribeManager<Message>* m_manager = nullptr;
@@ -77,6 +98,16 @@ class PublishSubscribeManager {
         for (auto* subscriber : m_subscribers) {
             subscriber->onUpdate(message);
         }
+    }
+
+    std::optional<Message> pullMessage() const {
+        std::shared_lock lock(s_mutex);
+        for (auto* publisher : m_publishers) {
+            if (auto msg = publisher->pull()) {
+                return msg;
+            }
+        }
+        return std::nullopt;
     }
 
     size_t getPublisherCount() const {
@@ -136,6 +167,22 @@ void IPublisher<Message>::publish(const Message& message) {
     m_manager->publishMessage(message);
 }
 
+// StatefulPublisher implementation
+template <typename Message>
+std::optional<Message> StatefulPublisher<Message>::pull() const {
+    std::shared_lock lock(m_stateMutex);
+    return m_lastMessage;
+}
+
+template <typename Message>
+void StatefulPublisher<Message>::publish(const Message& message) {
+    {
+        std::lock_guard lock(m_stateMutex);
+        m_lastMessage = message;
+    }
+    IPublisher<Message>::publish(message);
+}
+
 // ISubscriber implementation
 template <typename Message>
 ISubscriber<Message>::ISubscriber() : m_manager(PublishSubscribeManager<Message>::getManager()) {
@@ -145,6 +192,13 @@ ISubscriber<Message>::ISubscriber() : m_manager(PublishSubscribeManager<Message>
 template <typename Message>
 ISubscriber<Message>::~ISubscriber() {
     m_manager->removeSubscriber(this);
+}
+
+template <typename Message>
+void ISubscriber<Message>::pull() {
+    if (auto msg = m_manager->pullMessage()) {
+        this->onUpdate(*msg);
+    }
 }
 
 }  // namespace Utils::PublishSubscribe
