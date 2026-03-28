@@ -2,6 +2,7 @@ add_executable(
     UtilsConfigTest
     testConfigProvider.cpp
     testConfigPublisher.cpp
+    testConfigManager.cpp
     testJsonConfigParser.cpp
     testLogging.cpp
 )
