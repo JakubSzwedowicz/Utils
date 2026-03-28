@@ -76,17 +76,21 @@ inline std::shared_ptr<TestConfig> createTestConfig(const std::string& name = "t
 
 // ── Pub/Sub mock ─────────────────────────────────────────────────────────────
 
-class MockConfigSubscriber : public Utils::PublishSubscribe::ISubscriber<std::shared_ptr<TestConfig>> {
+class MockConfigSubscriber : public Utils::PublishSubscribe::ISubscriber<std::shared_ptr<const TestConfig>> {
    public:
-    MockConfigSubscriber() : ISubscriber<std::shared_ptr<TestConfig>>() {}
+    MockConfigSubscriber(bool doPull = false) : ISubscriber<std::shared_ptr<const TestConfig>>() {
+        if (doPull) {
+            this->pull();
+        }
+    }
 
-    void onUpdate(const std::shared_ptr<TestConfig>& config) override {
+    void onUpdate(const std::shared_ptr<const TestConfig>& config) override {
         lastReceivedConfig = config;
         updateCount++;
     }
 
    public:
-    std::shared_ptr<TestConfig> lastReceivedConfig = nullptr;
+    std::shared_ptr<const TestConfig> lastReceivedConfig = nullptr;
     int updateCount = 0;
 };
 
@@ -95,7 +99,7 @@ class MockConfigSubscriber : public Utils::PublishSubscribe::ISubscriber<std::sh
 class MockProvider1 : public Utils::Config::Providers::IConfigProvider<TestConfig> {
    public:
     void update(std::shared_ptr<TestConfig> config) { m_config = std::move(config); }
-    std::shared_ptr<TestConfig> getConfig() const override { return m_config; }
+    std::shared_ptr<const TestConfig> getConfig() const override { return m_config; }
     std::string_view name() const override { return "MockProvider1"; }
 
    private:
@@ -105,7 +109,7 @@ class MockProvider1 : public Utils::Config::Providers::IConfigProvider<TestConfi
 class MockProvider2 : public Utils::Config::Providers::IConfigProvider<TestConfig> {
    public:
     void update(std::shared_ptr<TestConfig> config) { m_config = std::move(config); }
-    std::shared_ptr<TestConfig> getConfig() const override { return m_config; }
+    std::shared_ptr<const TestConfig> getConfig() const override { return m_config; }
     std::string_view name() const override { return "MockProvider2"; }
 
    private:

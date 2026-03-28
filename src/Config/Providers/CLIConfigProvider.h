@@ -17,7 +17,7 @@ class CLIConfigProvider : public IConfigProvider<Config> {
    public:
     void update(int argc, char** argv) { m_config = m_parser.readConfig({argc, argv}); }
 
-    std::shared_ptr<Config> getConfig() const override { return m_config; }
+    std::shared_ptr<const Config> getConfig() const override { return m_config; }
     std::string_view name() const override { return "CLIConfigProvider"; }
 
    private:

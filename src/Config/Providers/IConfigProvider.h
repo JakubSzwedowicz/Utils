@@ -13,7 +13,7 @@ template <typename Config>
 class IConfigProvider {
    public:
     virtual ~IConfigProvider() = default;
-    virtual std::shared_ptr<Config> getConfig() const = 0;
+    virtual std::shared_ptr<const Config> getConfig() const = 0;
     virtual std::string_view name() const = 0;
 };
 
