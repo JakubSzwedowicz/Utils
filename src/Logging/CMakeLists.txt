@@ -14,6 +14,7 @@ target_sources(Logging
         LoggerConfig.h
         LogLevel.h
         LoggerMacros.h
+        LoggerSubscribed.h
 )
 
 find_package(spdlog REQUIRED)

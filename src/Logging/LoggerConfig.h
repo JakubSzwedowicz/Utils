@@ -15,6 +15,16 @@ struct LoggerConfig {
     std::string filename = "mainLog.txt";
     LogLevel globalLogLevel = LogLevel::INFO;
     std::unordered_map<std::string, LogLevel> loggersLogLevels;
+
+    bool operator==(const LoggerConfig& other) const {
+        return filename == other.filename &&
+               globalLogLevel == other.globalLogLevel &&
+               loggersLogLevels == other.loggersLogLevels;
+    }
+
+    bool operator!=(const LoggerConfig& other) const {
+        return !(*this == other);
+    }
 };
 
 }  // namespace Utils::Logging

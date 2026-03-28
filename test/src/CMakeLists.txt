@@ -3,6 +3,7 @@ add_executable(
     testConfigProvider.cpp
     testConfigPublisher.cpp
     testConfigManager.cpp
+    testCLIConfigProvider.cpp
     testJsonConfigParser.cpp
     testLogging.cpp
 )

@@ -4,14 +4,16 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <optional>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
-namespace Utils::Config {
+namespace Utils::Config::ConfigParameters {
 
 class IConfigSlotBase {
    public:
@@ -25,6 +27,8 @@ class IConfigSlotBase {
     virtual bool equals(const IConfigSlotBase& other) const = 0;
     virtual void reset() = 0;
     virtual std::string valueToString() const = 0;
+    // Returns false if the string could not be parsed into T.
+    virtual bool setFromString(std::string_view value) = 0;
 };
 
 template <typename T>
@@ -65,6 +69,36 @@ class ConfigSlot : public IConfigSlotBase {
         }
     }
 
+    bool setFromString(std::string_view sv) override {
+        if constexpr (std::is_same_v<T, std::string>) {
+            setValue(std::string(sv));
+            return true;
+        } else if constexpr (std::is_same_v<T, bool>) {
+            std::string lower(sv);
+            std::ranges::transform(lower, lower.begin(),
+                                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (lower == "true" || lower == "1" || lower == "yes" || lower == "on" || lower.empty()) {
+                setValue(true);
+                return true;
+            }
+            if (lower == "false" || lower == "0" || lower == "no" || lower == "off") {
+                setValue(false);
+                return true;
+            }
+            return false;
+        } else if constexpr (requires(std::istream& is, T& v) { is >> v; }) {
+            std::istringstream iss{std::string(sv)};
+            T parsed;
+            if (iss >> parsed && iss.eof()) {
+                setValue(std::move(parsed));
+                return true;
+            }
+            return false;
+        } else {
+            return false;
+        }
+    }
+
     void setValue(T value) { m_value = std::move(value); }
     const std::optional<T>& get() const { return m_value; }
 
@@ -97,4 +131,4 @@ class ConfigParameter {
     ConfigSlot<T>* m_slot;
 };
 
-}  // namespace Utils::Config
+}  // namespace Utils::Config::ConfigParameters

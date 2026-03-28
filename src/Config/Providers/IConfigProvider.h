@@ -7,7 +7,7 @@
 #include <memory>
 #include <string_view>
 
-namespace Utils::Config {
+namespace Utils::Config::Providers {
 
 template <typename Config>
 class IConfigProvider {
@@ -17,4 +17,4 @@ class IConfigProvider {
     virtual std::string_view name() const = 0;
 };
 
-}  // namespace Utils::Config
+}  // namespace Utils::Config::Providers

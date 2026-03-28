@@ -8,9 +8,9 @@
 #include <memory>
 #include <vector>
 
-#include "ConfigParameter.h"
+#include "ConfigParameters/ConfigParameter.h"
 
-namespace Utils::Config {
+namespace Utils::Config::ConfigParameters {
 
 class ConfigParametersContainer {
    public:
@@ -47,4 +47,4 @@ class ConfigParametersContainer {
     std::vector<std::function<void()>> m_defaultApplicators;
 };
 
-}  // namespace Utils::Config
+}  // namespace Utils::Config::ConfigParameters

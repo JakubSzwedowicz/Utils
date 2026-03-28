@@ -2,12 +2,13 @@
 
 #include <string>
 
-#include "Config/ConfigParameter.h"
-#include "Config/ConfigParametersContainer.h"
-#include "Config/DefaultConfigProvider.h"
+#include "Config/ConfigParameters/ConfigParameter.h"
+#include "Config/ConfigParameters/ConfigParametersContainer.h"
+#include "Config/Providers/DefaultConfigProvider.h"
 #include "Mocks.h"
 
-using namespace Utils::Config;
+using namespace Utils::Config::ConfigParameters;
+using Utils::Config::Providers::DefaultConfigProvider;
 
 // ── ConfigParameter ──────────────────────────────────────────────────────────
 

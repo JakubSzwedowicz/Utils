@@ -5,23 +5,23 @@
 #include <memory>
 #include <string>
 
-#include "Config/ConfigParametersContainer.h"
-#include "Config/ConfigParameter.h"
-#include "Config/IConfigProvider.h"
+#include "Config/ConfigParameters/ConfigParameter.h"
+#include "Config/ConfigParameters/ConfigParametersContainer.h"
+#include "Config/Providers/IConfigProvider.h"
 #include "PublishSubscribe/IPublisherSubscriber.h"
 
 // ── Test config ──────────────────────────────────────────────────────────────
 
 struct TestConfig {
-    Utils::Config::ConfigParametersContainer m_container;
+    Utils::Config::ConfigParameters::ConfigParametersContainer m_container;
 
-    Utils::Config::ConfigParameter<std::string> name =
+    Utils::Config::ConfigParameters::ConfigParameter<std::string> name =
         m_container.buildConfigParam<std::string>("name", "Test config name", std::string("default_name"));
-    Utils::Config::ConfigParameter<int> value =
+    Utils::Config::ConfigParameters::ConfigParameter<int> value =
         m_container.buildConfigParam<int>("value", "Test config value", 0);
-    Utils::Config::ConfigParameter<double> rate =
+    Utils::Config::ConfigParameters::ConfigParameter<double> rate =
         m_container.buildConfigParam<double>("rate", "Test config rate", 0.0);
-    Utils::Config::ConfigParameter<bool> enabled =
+    Utils::Config::ConfigParameters::ConfigParameter<bool> enabled =
         m_container.buildConfigParam<bool>("enabled", "Test config enabled flag", false);
 
     TestConfig() = default;
@@ -59,7 +59,7 @@ class MockConfigSubscriber : public Utils::PublishSubscribe::ISubscriber<std::sh
 
 // ── Mock providers for ConfigManager tests ───────────────────────────────────
 
-class MockProvider1 : public Utils::Config::IConfigProvider<TestConfig> {
+class MockProvider1 : public Utils::Config::Providers::IConfigProvider<TestConfig> {
    public:
     void update(std::shared_ptr<TestConfig> config) { m_config = std::move(config); }
     std::shared_ptr<TestConfig> getConfig() const override { return m_config; }
@@ -69,7 +69,7 @@ class MockProvider1 : public Utils::Config::IConfigProvider<TestConfig> {
     std::shared_ptr<TestConfig> m_config;
 };
 
-class MockProvider2 : public Utils::Config::IConfigProvider<TestConfig> {
+class MockProvider2 : public Utils::Config::Providers::IConfigProvider<TestConfig> {
    public:
     void update(std::shared_ptr<TestConfig> config) { m_config = std::move(config); }
     std::shared_ptr<TestConfig> getConfig() const override { return m_config; }

@@ -26,11 +26,11 @@ class testJsonConfigParser : public ::testing::Test {
 };
 
 TEST_F(testJsonConfigParser, ParserCreation) {
-    EXPECT_NO_THROW({ auto parser = std::make_unique<Utils::Config::JsonConfigParser<PlainTestConfig>>(); });
+    EXPECT_NO_THROW({ auto parser = std::make_unique<Utils::Config::ConfigParser::JsonConfigParser<PlainTestConfig>>(); });
 }
 
 TEST_F(testJsonConfigParser, ReadInvalidJson) {
-    auto parser = std::make_unique<Utils::Config::JsonConfigParser<PlainTestConfig>>();
+    auto parser = std::make_unique<Utils::Config::ConfigParser::JsonConfigParser<PlainTestConfig>>();
     std::stringstream invalidJsonStream("{invalid json}");
 
     auto readConfig = parser->readConfig(invalidJsonStream);
@@ -39,7 +39,7 @@ TEST_F(testJsonConfigParser, ReadInvalidJson) {
 }
 
 TEST_F(testJsonConfigParser, ReadEmptyStream) {
-    auto parser = std::make_unique<Utils::Config::JsonConfigParser<PlainTestConfig>>();
+    auto parser = std::make_unique<Utils::Config::ConfigParser::JsonConfigParser<PlainTestConfig>>();
     std::stringstream emptyStream("");
 
     auto readConfig = parser->readConfig(emptyStream);
@@ -48,7 +48,7 @@ TEST_F(testJsonConfigParser, ReadEmptyStream) {
 }
 
 TEST_F(testJsonConfigParser, WriteAndReadConfig) {
-    auto parser = std::make_unique<Utils::Config::JsonConfigParser<PlainTestConfig>>();
+    auto parser = std::make_unique<Utils::Config::ConfigParser::JsonConfigParser<PlainTestConfig>>();
     std::stringstream stream;
 
     int writeResult = parser->writeConfig(testConfig, stream);
@@ -70,7 +70,7 @@ TEST_F(testJsonConfigParser, WriteAndReadConfig) {
 }
 
 TEST_F(testJsonConfigParser, ReadPartialJson) {
-    auto parser = std::make_unique<Utils::Config::JsonConfigParser<PlainTestConfig>>();
+    auto parser = std::make_unique<Utils::Config::ConfigParser::JsonConfigParser<PlainTestConfig>>();
     std::stringstream partialJsonStream(R"({"name": "partial", "value": 999})");
 
     auto readConfig = parser->readConfig(partialJsonStream);

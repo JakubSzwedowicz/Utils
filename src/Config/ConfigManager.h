@@ -9,7 +9,7 @@
 #include <tuple>
 
 #include "ConfigPublisher.h"
-#include "DefaultConfigProvider.h"
+#include "Providers/DefaultConfigProvider.h"
 #include "Logging/Logger.h"
 #include "Logging/LoggerMacros.h"
 
@@ -17,7 +17,7 @@ namespace Utils::Config {
 
 template <typename Config, typename... Providers>
 class ConfigManager : public ConfigPublisher<Config> {
-    using DefaultProvider = DefaultConfigProvider<Config>;
+    using DefaultProvider = Utils::Config::Providers::DefaultConfigProvider<Config>;
     static constexpr size_t kTotalProviders = sizeof...(Providers) + 1;
 
    public:

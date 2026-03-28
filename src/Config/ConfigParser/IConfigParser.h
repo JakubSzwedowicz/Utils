@@ -3,14 +3,16 @@
 //
 
 #pragma once
-#include <iosfwd>
 #include <memory>
 
-template <typename Config>
+namespace Utils::Config::ConfigParser {
+
+template <typename Config, typename Source>
 class IConfigParser {
    public:
     virtual ~IConfigParser() = default;
 
-    virtual std::shared_ptr<Config> readConfig(std::istream& stream) const = 0;
-    virtual int writeConfig(const Config& config, std::ostream& out) const = 0;
+    virtual std::shared_ptr<Config> readConfig(Source source) const = 0;
 };
+
+}  // namespace Utils::Config::ConfigParser
