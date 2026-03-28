@@ -148,9 +148,7 @@ namespace glz {
 template <typename T>
 struct meta<Utils::Config::ConfigParameters::ConfigParameter<T>> {
     using V = Utils::Config::ConfigParameters::ConfigParameter<T>;
-    static constexpr auto value = custom<
-        [](V& obj, const T& v) { obj.set(v); },
-        [](const V& obj) -> const T& { return obj.get(); }
-    >;
+    static constexpr auto value =
+        custom<[](V& obj, const T& v) { obj.set(v); }, [](const V& obj) -> const T& { return obj.get(); }>;
 };
-}
+}  // namespace glz

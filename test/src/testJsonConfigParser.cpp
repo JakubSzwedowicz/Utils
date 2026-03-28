@@ -26,7 +26,8 @@ class testJsonConfigParser : public ::testing::Test {
 };
 
 TEST_F(testJsonConfigParser, ParserCreation) {
-    EXPECT_NO_THROW({ auto parser = std::make_unique<Utils::Config::ConfigParser::JsonConfigParser<PlainTestConfig>>(); });
+    EXPECT_NO_THROW(
+        { auto parser = std::make_unique<Utils::Config::ConfigParser::JsonConfigParser<PlainTestConfig>>(); });
 }
 
 TEST_F(testJsonConfigParser, ReadInvalidJson) {

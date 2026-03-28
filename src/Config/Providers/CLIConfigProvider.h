@@ -15,9 +15,7 @@ namespace Utils::Config::Providers {
 template <typename Config>
 class CLIConfigProvider : public IConfigProvider<Config> {
    public:
-    void update(int argc, char** argv) {
-        m_config = m_parser.readConfig({argc, argv});
-    }
+    void update(int argc, char** argv) { m_config = m_parser.readConfig({argc, argv}); }
 
     std::shared_ptr<Config> getConfig() const override { return m_config; }
     std::string_view name() const override { return "CLIConfigProvider"; }

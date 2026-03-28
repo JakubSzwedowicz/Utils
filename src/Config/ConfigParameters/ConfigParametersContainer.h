@@ -16,9 +16,8 @@ class ConfigParametersContainer {
    public:
     template <typename T>
     ConfigParameter<T> buildConfigParam(std::string name, std::string description, T defaultValue,
-                                         std::function<bool(const T&)> validator = {}) {
-        auto slot =
-            std::make_unique<ConfigSlot<T>>(std::move(name), std::move(description), std::move(validator));
+                                        std::function<bool(const T&)> validator = {}) {
+        auto slot = std::make_unique<ConfigSlot<T>>(std::move(name), std::move(description), std::move(validator));
         auto* ptr = static_cast<ConfigSlot<T>*>(slot.get());
         m_slots.push_back(std::move(slot));
         m_defaultApplicators.push_back([ptr, defaultValue = std::move(defaultValue)] { ptr->setValue(defaultValue); });

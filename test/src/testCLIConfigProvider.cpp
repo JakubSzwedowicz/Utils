@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "Config/Providers/CLIConfigProvider.h"
 #include "Config/ConfigManager.h"
+#include "Config/Providers/CLIConfigProvider.h"
 #include "Mocks.h"
 
 using namespace Utils::Config::Providers;
@@ -17,12 +17,12 @@ struct FakeArgv {
         for (auto sv : args) m_storage.emplace_back(sv);
         for (auto& s : m_storage) m_ptrs.push_back(s.data());
     }
-    int    argc() const { return static_cast<int>(m_ptrs.size()); }
+    int argc() const { return static_cast<int>(m_ptrs.size()); }
     char** argv() { return const_cast<char**>(m_ptrs.data()); }
 
    private:
-    std::vector<std::string>      m_storage;
-    std::vector<const char*>      m_ptrs;
+    std::vector<std::string> m_storage;
+    std::vector<const char*> m_ptrs;
 };
 
 // ── Provider in isolation ────────────────────────────────────────────────────
@@ -38,10 +38,14 @@ TEST_F(testCLIConfigProvider, ParsesEqualsFormat) {
 
     auto cfg = provider.getConfig();
     ASSERT_NE(cfg, nullptr);
-    ASSERT_TRUE(cfg->name.hasValue());    EXPECT_EQ(cfg->name.get(),    "hello");
-    ASSERT_TRUE(cfg->value.hasValue());   EXPECT_EQ(cfg->value.get(),   42);
-    ASSERT_TRUE(cfg->rate.hasValue());    EXPECT_DOUBLE_EQ(cfg->rate.get(), 1.5);
-    ASSERT_TRUE(cfg->enabled.hasValue()); EXPECT_TRUE(cfg->enabled.get());
+    ASSERT_TRUE(cfg->name.hasValue());
+    EXPECT_EQ(cfg->name.get(), "hello");
+    ASSERT_TRUE(cfg->value.hasValue());
+    EXPECT_EQ(cfg->value.get(), 42);
+    ASSERT_TRUE(cfg->rate.hasValue());
+    EXPECT_DOUBLE_EQ(cfg->rate.get(), 1.5);
+    ASSERT_TRUE(cfg->enabled.hasValue());
+    EXPECT_TRUE(cfg->enabled.get());
 }
 
 TEST_F(testCLIConfigProvider, ParsesSpaceSeparatedFormat) {
@@ -49,8 +53,10 @@ TEST_F(testCLIConfigProvider, ParsesSpaceSeparatedFormat) {
     provider.update(args.argc(), args.argv());
 
     auto cfg = provider.getConfig();
-    ASSERT_TRUE(cfg->name.hasValue());  EXPECT_EQ(cfg->name.get(),  "world");
-    ASSERT_TRUE(cfg->value.hasValue()); EXPECT_EQ(cfg->value.get(), 7);
+    ASSERT_TRUE(cfg->name.hasValue());
+    EXPECT_EQ(cfg->name.get(), "world");
+    ASSERT_TRUE(cfg->value.hasValue());
+    EXPECT_EQ(cfg->value.get(), 7);
 }
 
 TEST_F(testCLIConfigProvider, BoolFlagWithNoValueIsTrue) {
@@ -103,9 +109,7 @@ TEST_F(testCLIConfigProvider, UnparsedParamsHaveNoValue) {
     EXPECT_FALSE(cfg->enabled.hasValue());
 }
 
-TEST_F(testCLIConfigProvider, NameIsCorrect) {
-    EXPECT_EQ(provider.name(), "CLIConfigProvider");
-}
+TEST_F(testCLIConfigProvider, NameIsCorrect) { EXPECT_EQ(provider.name(), "CLIConfigProvider"); }
 
 // ── Inside ConfigManager ─────────────────────────────────────────────────────
 
@@ -117,10 +121,10 @@ TEST(testCLIConfigProviderInManager, CLIOverridesDefault) {
 
     auto cfg = manager.getConfig();
     ASSERT_NE(cfg, nullptr);
-    EXPECT_EQ(cfg->name.get(),  "from_cli");
+    EXPECT_EQ(cfg->name.get(), "from_cli");
     EXPECT_EQ(cfg->value.get(), 99);
     // Params not on the CLI fall back to DefaultConfigProvider
-    EXPECT_EQ(cfg->rate.get(),    0.0);
+    EXPECT_EQ(cfg->rate.get(), 0.0);
     EXPECT_FALSE(cfg->enabled.get());
 }
 
@@ -146,4 +150,3 @@ TEST_F(testCLIConfigProviderNested, ParsesNestedLoggerConfig) {
     EXPECT_EQ(cfg->loggerConfig.get().filename, "cli_test.log");
     EXPECT_EQ(cfg->loggerConfig.get().globalLogLevel, Utils::Logging::LogLevel::WARNING);
 }
-

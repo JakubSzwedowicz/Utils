@@ -11,8 +11,7 @@ using namespace Utils::Config;
 class testConfigManager : public ::testing::Test {
    protected:
     void TearDown() override {
-        auto manager =
-            Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
+        auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
         if (subscriber) manager->removeSubscriber(subscriber.get());
     }
 
@@ -82,8 +81,7 @@ TEST_F(testConfigManager, PublishesOnConfigChange) {
     ConfigManager<TestConfig, MockProvider1> manager;
     subscriber = std::make_shared<MockConfigSubscriber>();
 
-    auto psManager =
-        Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
+    auto psManager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
     psManager->addSubscriber(subscriber.get());
 
     // Initial resolve() in constructor already published once — reset the count
@@ -100,8 +98,7 @@ TEST_F(testConfigManager, DoesNotPublishWhenConfigUnchanged) {
     ConfigManager<TestConfig, MockProvider1> manager;
     subscriber = std::make_shared<MockConfigSubscriber>();
 
-    auto psManager =
-        Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
+    auto psManager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
     psManager->addSubscriber(subscriber.get());
 
     auto cfg = createTestConfig("same", 1);
