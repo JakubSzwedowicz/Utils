@@ -27,7 +27,7 @@ class Logger {
     void onUpdate(const std::shared_ptr<LoggerConfig>& newConfig);
 
     template <LogLevel Level>
-    void log(std::string_view message);
+    void log(const char* file, int line, const char* func, std::string_view message);
 
     void flush();
 

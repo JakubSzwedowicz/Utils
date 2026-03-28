@@ -50,8 +50,9 @@ void Logger::onUpdate(const std::shared_ptr<LoggerConfig>& newConfig) {
 }
 
 template <LogLevel Level>
-void Logger::log(std::string_view message) {
-    m_logger->log(logLevelToSpdlog(Level), message);
+void Logger::log(const char* file, int line, const char* func, std::string_view message) {
+    spdlog::source_loc loc{file, line, func};
+    m_logger->log(loc, logLevelToSpdlog(Level), message);
 }
 
 void Logger::flush() { m_logger->flush(); }
@@ -101,18 +102,18 @@ std::shared_ptr<spdlog::logger> Logger::buildLogger(const std::string& name,
     fileSink->set_level(spdlog::level::trace);
 
     auto logger = std::make_shared<spdlog::logger>(name, spdlog::sinks_init_list{consoleSink, fileSink});
-    auto pattern = "[%Y-%m-%d %H:%M:%S.%e] [P%P:T%t] [%^%l%$] [%s:%#] [%n:%!] %v";
+    auto pattern = "[%Y-%m-%d %H:%M:%S.%e] [P%P:T%t] [%^%l%$] [%s:%#] [%n::%!] %v";
     logger->set_pattern(pattern);
 
     return logger;
 }
 
 // Explicit Instantiations
-template void Logger::log<LogLevel::DEBUG>(std::string_view);
-template void Logger::log<LogLevel::INFO>(std::string_view);
-template void Logger::log<LogLevel::WARNING>(std::string_view);
-template void Logger::log<LogLevel::ERROR>(std::string_view);
-template void Logger::log<LogLevel::CRITICAL>(std::string_view);
-template void Logger::log<LogLevel::OFF>(std::string_view);
+template void Logger::log<LogLevel::DEBUG>(const char*, int, const char*, std::string_view);
+template void Logger::log<LogLevel::INFO>(const char*, int, const char*, std::string_view);
+template void Logger::log<LogLevel::WARNING>(const char*, int, const char*, std::string_view);
+template void Logger::log<LogLevel::ERROR>(const char*, int, const char*, std::string_view);
+template void Logger::log<LogLevel::CRITICAL>(const char*, int, const char*, std::string_view);
+template void Logger::log<LogLevel::OFF>(const char*, int, const char*, std::string_view);
 
 }  // namespace Utils::Logging
