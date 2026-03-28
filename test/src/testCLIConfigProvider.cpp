@@ -123,3 +123,27 @@ TEST(testCLIConfigProviderInManager, CLIOverridesDefault) {
     EXPECT_EQ(cfg->rate.get(),    0.0);
     EXPECT_FALSE(cfg->enabled.get());
 }
+
+// ── Tests for NestedConfig & LoggerConfig ────────────────────────────────────
+
+class testCLIConfigProviderNested : public ::testing::Test {
+   protected:
+    CLIConfigProvider<NestedTestConfig> provider;
+};
+
+// We want to verify that someone can provide a JSON string or appropriate CLI arg
+// to instantiate a full LoggerConfig in the ConfigParameter.
+TEST_F(testCLIConfigProviderNested, ParsesNestedLoggerConfig) {
+    FakeArgv args{"prog", "--port=9090", "--loggerConfig={\"filename\":\"cli_test.log\",\"globalLogLevel\":2}"};
+    provider.update(args.argc(), args.argv());
+
+    auto cfg = provider.getConfig();
+    ASSERT_NE(cfg, nullptr);
+    ASSERT_TRUE(cfg->port.hasValue());
+    EXPECT_EQ(cfg->port.get(), 9090);
+
+    ASSERT_TRUE(cfg->loggerConfig.hasValue());
+    EXPECT_EQ(cfg->loggerConfig.get().filename, "cli_test.log");
+    EXPECT_EQ(cfg->loggerConfig.get().globalLogLevel, Utils::Logging::LogLevel::WARNING);
+}
+

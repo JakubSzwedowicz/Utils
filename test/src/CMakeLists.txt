@@ -6,6 +6,7 @@ add_executable(
     testCLIConfigProvider.cpp
     testJsonConfigParser.cpp
     testLogging.cpp
+    testJsonConfigProvider.cpp
 )
 
 target_link_libraries(

@@ -13,6 +13,8 @@
 #include <string_view>
 #include <type_traits>
 
+#include "glaze/glaze.hpp"
+
 namespace Utils::Config::ConfigParameters {
 
 class IConfigSlotBase {
@@ -94,6 +96,15 @@ class ConfigSlot : public IConfigSlotBase {
                 return true;
             }
             return false;
+        } else if constexpr (glz::reflectable<T> || glz::glaze_object_t<T>) {
+            // Fallback: treat the string as a JSON snippet (e.g. nested struct passed via CLI)
+            T parsed{};
+            const auto ec = glz::read_json(parsed, std::string(sv));
+            if (!ec) {
+                setValue(std::move(parsed));
+                return true;
+            }
+            return false;
         } else {
             return false;
         }
@@ -132,3 +143,14 @@ class ConfigParameter {
 };
 
 }  // namespace Utils::Config::ConfigParameters
+
+namespace glz {
+template <typename T>
+struct meta<Utils::Config::ConfigParameters::ConfigParameter<T>> {
+    using V = Utils::Config::ConfigParameters::ConfigParameter<T>;
+    static constexpr auto value = custom<
+        [](V& obj, const T& v) { obj.set(v); },
+        [](const V& obj) -> const T& { return obj.get(); }
+    >;
+};
+}

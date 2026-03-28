@@ -18,7 +18,11 @@ target_sources(Logging
 )
 
 find_package(spdlog REQUIRED)
-target_link_libraries(Logging PRIVATE spdlog::spdlog)
+find_package(glaze REQUIRED)
+target_link_libraries(Logging
+    PRIVATE spdlog::spdlog
+    PUBLIC  glaze::glaze
+)
 target_compile_features(Logging PRIVATE cxx_std_23)
 target_include_directories(Logging
         PUBLIC

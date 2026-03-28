@@ -14,13 +14,13 @@ namespace Utils::Config::ConfigParser {
 template <typename Config>
 class JsonConfigParser : public IConfigParser<Config, std::istream&> {
    public:
-    JsonConfigParser() { static_assert(glz::reflectable<Config>); }
+    JsonConfigParser() { static_assert(glz::reflectable<Config> || glz::glaze_object_t<Config>); }
 
     std::shared_ptr<Config> readConfig(std::istream& jsonStream) const override {
         std::string json((std::istreambuf_iterator<char>(jsonStream)), std::istreambuf_iterator<char>());
 
-        Config config;
-        auto ec = glz::read_json(config, json);
+        auto config = std::make_shared<Config>();
+        auto ec = glz::read_json(*config, json);
         if (ec) {
             std::cerr << "Error reading JSON config: " << static_cast<uint32_t>(ec);
 
@@ -31,7 +31,7 @@ class JsonConfigParser : public IConfigParser<Config, std::istream&> {
             std::cerr << std::endl;
             return nullptr;
         }
-        return std::make_shared<Config>(config);
+        return config;
     }
 
     int writeConfig(const Config& config, std::ostream& out) const {

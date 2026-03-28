@@ -8,6 +8,7 @@
 #include "Config/ConfigParameters/ConfigParameter.h"
 #include "Config/ConfigParameters/ConfigParametersContainer.h"
 #include "Config/Providers/IConfigProvider.h"
+#include "Logging/LoggerConfig.h"
 #include "PublishSubscribe/IPublisherSubscriber.h"
 
 // ── Test config ──────────────────────────────────────────────────────────────
@@ -28,6 +29,41 @@ struct TestConfig {
     TestConfig(const TestConfig&) = delete;
     TestConfig& operator=(const TestConfig&) = delete;
 };
+
+struct NestedTestConfig {
+    Utils::Config::ConfigParameters::ConfigParametersContainer m_container;
+
+    Utils::Config::ConfigParameters::ConfigParameter<int> port =
+        m_container.buildConfigParam<int>("port", "Test port", 8080);
+
+    Utils::Config::ConfigParameters::ConfigParameter<Utils::Logging::LoggerConfig> loggerConfig =
+        m_container.buildConfigParam<Utils::Logging::LoggerConfig>("loggerConfig", "Logger config", Utils::Logging::LoggerConfig{});
+
+    NestedTestConfig() = default;
+    NestedTestConfig(const NestedTestConfig&) = delete;
+    NestedTestConfig& operator=(const NestedTestConfig&) = delete;
+};
+
+#include "glaze/glaze.hpp"
+
+namespace glz {
+template <>
+struct meta<TestConfig> {
+    using T = TestConfig;
+    static constexpr auto value = object(
+        "name",    &T::name,
+        "value",   &T::value,
+        "rate",    &T::rate,
+        "enabled", &T::enabled
+    );
+};
+
+template <>
+struct meta<NestedTestConfig> {
+    using T = NestedTestConfig;
+    static constexpr auto value = object("port", &T::port, "loggerConfig", &T::loggerConfig);
+};
+}
 
 // Helper: creates a TestConfig with explicit values set on each parameter.
 // Does NOT call applyDefaults() — values are explicitly set.

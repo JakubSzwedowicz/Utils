@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "LogLevel.h"
+#include "glaze/glaze.hpp"
 
 namespace Utils::Logging {
 
@@ -28,3 +29,15 @@ struct LoggerConfig {
 };
 
 }  // namespace Utils::Logging
+
+namespace glz {
+template <>
+struct meta<Utils::Logging::LoggerConfig> {
+    using T = Utils::Logging::LoggerConfig;
+    static constexpr auto value = object(
+        "filename",         &T::filename,
+        "globalLogLevel",   &T::globalLogLevel,
+        "loggersLogLevels", &T::loggersLogLevels
+    );
+};
+}
