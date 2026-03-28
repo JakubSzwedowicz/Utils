@@ -14,7 +14,8 @@ using _Logger = Utils::Logging::Logger;
 #define UTILS_LOG_FUNC __func__
 #endif
 
-#define LOG(LogLevelValue, ...) m_logger.log<Utils::Logging::LogLevel::LogLevelValue>(__FILE__, __LINE__, UTILS_LOG_FUNC, fmt::format(__VA_ARGS__))
+#define LOG(LogLevelValue, ...) \
+    m_logger.log<Utils::Logging::LogLevel::LogLevelValue>(__FILE__, __LINE__, UTILS_LOG_FUNC, fmt::format(__VA_ARGS__))
 
 #define LOG_D(...) LOG(DEBUG, __VA_ARGS__)
 #define LOG_I(...) LOG(INFO, __VA_ARGS__)

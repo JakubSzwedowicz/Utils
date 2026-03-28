@@ -37,7 +37,8 @@ struct NestedTestConfig {
         m_container.buildConfigParam<int>("port", "Test port", 8080);
 
     Utils::Config::ConfigParameters::ConfigParameter<Utils::Logging::LoggerConfig> loggerConfig =
-        m_container.buildConfigParam<Utils::Logging::LoggerConfig>("loggerConfig", "Logger config", Utils::Logging::LoggerConfig{});
+        m_container.buildConfigParam<Utils::Logging::LoggerConfig>("loggerConfig", "Logger config",
+                                                                   Utils::Logging::LoggerConfig{});
 
     NestedTestConfig() = default;
     NestedTestConfig(const NestedTestConfig&) = delete;
@@ -50,12 +51,8 @@ namespace glz {
 template <>
 struct meta<TestConfig> {
     using T = TestConfig;
-    static constexpr auto value = object(
-        "name",    &T::name,
-        "value",   &T::value,
-        "rate",    &T::rate,
-        "enabled", &T::enabled
-    );
+    static constexpr auto value =
+        object("name", &T::name, "value", &T::value, "rate", &T::rate, "enabled", &T::enabled);
 };
 
 template <>
@@ -63,12 +60,12 @@ struct meta<NestedTestConfig> {
     using T = NestedTestConfig;
     static constexpr auto value = object("port", &T::port, "loggerConfig", &T::loggerConfig);
 };
-}
+}  // namespace glz
 
 // Helper: creates a TestConfig with explicit values set on each parameter.
 // Does NOT call applyDefaults() — values are explicitly set.
 inline std::shared_ptr<TestConfig> createTestConfig(const std::string& name = "test", int value = 100,
-                                                     double rate = 2.71, bool enabled = false) {
+                                                    double rate = 2.71, bool enabled = false) {
     auto config = std::make_shared<TestConfig>();
     config->name.set(name);
     config->value.set(value);

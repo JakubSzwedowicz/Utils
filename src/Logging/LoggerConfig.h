@@ -18,14 +18,11 @@ struct LoggerConfig {
     std::unordered_map<std::string, LogLevel> loggersLogLevels;
 
     bool operator==(const LoggerConfig& other) const {
-        return filename == other.filename &&
-               globalLogLevel == other.globalLogLevel &&
+        return filename == other.filename && globalLogLevel == other.globalLogLevel &&
                loggersLogLevels == other.loggersLogLevels;
     }
 
-    bool operator!=(const LoggerConfig& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const LoggerConfig& other) const { return !(*this == other); }
 };
 
 }  // namespace Utils::Logging
@@ -34,10 +31,7 @@ namespace glz {
 template <>
 struct meta<Utils::Logging::LoggerConfig> {
     using T = Utils::Logging::LoggerConfig;
-    static constexpr auto value = object(
-        "filename",         &T::filename,
-        "globalLogLevel",   &T::globalLogLevel,
-        "loggersLogLevels", &T::loggersLogLevels
-    );
+    static constexpr auto value = object("filename", &T::filename, "globalLogLevel", &T::globalLogLevel,
+                                         "loggersLogLevels", &T::loggersLogLevels);
 };
-}
+}  // namespace glz
