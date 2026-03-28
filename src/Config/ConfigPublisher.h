@@ -15,13 +15,9 @@ class ConfigPublisher : public PublishSubscribe::StatefulPublisher<std::shared_p
    public:
     ~ConfigPublisher() override = default;
 
-    virtual void setConfig(std::shared_ptr<const Config> config) {
-        this->publish(config);
-    }
+    virtual void setConfig(std::shared_ptr<const Config> config) { this->publish(config); }
 
-    virtual std::shared_ptr<const Config> getConfig() const {
-        return this->pull().value_or(nullptr);
-    }
+    virtual std::shared_ptr<const Config> getConfig() const { return this->pull().value_or(nullptr); }
 };
 
 }  // namespace Utils::Config
