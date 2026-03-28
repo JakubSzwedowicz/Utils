@@ -15,17 +15,15 @@ using Utils::Config::Providers::DefaultConfigProvider;
 class testConfigParameter : public ::testing::Test {
    protected:
     void SetUp() override {
-        param = m_container.buildConfigParam<int>("port", "Server port", 8080,
-                                                  [](int v) { return v > 0 && v < 65536; });
+        param =
+            m_container.buildConfigParam<int>("port", "Server port", 8080, [](int v) { return v > 0 && v < 65536; });
     }
 
     ConfigParametersContainer m_container;
     ConfigParameter<int> param{nullptr};
 };
 
-TEST_F(testConfigParameter, StartsWithNoValue) {
-    EXPECT_FALSE(param.hasValue());
-}
+TEST_F(testConfigParameter, StartsWithNoValue) { EXPECT_FALSE(param.hasValue()); }
 
 TEST_F(testConfigParameter, SetAndGet) {
     param.set(9090);
@@ -49,9 +47,7 @@ TEST_F(testConfigParameter, ValidatorRejectsInvalidValue) {
     EXPECT_FALSE(param.validate());
 }
 
-TEST_F(testConfigParameter, ValidateReturnsTrueWhenUnset) {
-    EXPECT_TRUE(param.validate());
-}
+TEST_F(testConfigParameter, ValidateReturnsTrueWhenUnset) { EXPECT_TRUE(param.validate()); }
 
 // ── ConfigParametersContainer ─────────────────────────────────────────────────
 

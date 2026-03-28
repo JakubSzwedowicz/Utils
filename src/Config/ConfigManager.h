@@ -9,9 +9,9 @@
 #include <tuple>
 
 #include "ConfigPublisher.h"
-#include "Providers/DefaultConfigProvider.h"
 #include "Logging/Logger.h"
 #include "Logging/LoggerMacros.h"
+#include "Providers/DefaultConfigProvider.h"
 
 namespace Utils::Config {
 
@@ -21,10 +21,7 @@ class ConfigManager : public ConfigPublisher<Config> {
     static constexpr size_t kTotalProviders = sizeof...(Providers) + 1;
 
    public:
-    ConfigManager()
-        : m_providers(std::make_unique<Providers>()..., std::make_unique<DefaultProvider>()) {
-        resolve();
-    }
+    ConfigManager() : m_providers(std::make_unique<Providers>()..., std::make_unique<DefaultProvider>()) { resolve(); }
 
     template <typename T>
     T& getProvider() {
@@ -40,23 +37,19 @@ class ConfigManager : public ConfigPublisher<Config> {
     void resolve() {
         auto resolved = std::make_shared<Config>();
 
-        auto providerConfigs = std::apply(
-            [](auto&... p) {
-                return std::array<std::shared_ptr<Config>, sizeof...(p)>{p->getConfig()...};
-            },
-            m_providers);
+        auto providerConfigs =
+            std::apply([](auto&... p) { return std::array<std::shared_ptr<Config>, sizeof...(p)>{p->getConfig()...}; },
+                       m_providers);
 
         auto providerNames = std::apply(
-            [](auto&... p) { return std::array<std::string_view, sizeof...(p)>{p->name()...}; },
-            m_providers);
+            [](auto&... p) { return std::array<std::string_view, sizeof...(p)>{p->name()...}; }, m_providers);
 
         size_t maxParamLen = 0;
         for (size_t i = 0; i < resolved->m_container.size(); ++i)
             maxParamLen = std::max(maxParamLen, resolved->m_container.at(i).name().size());
 
         size_t maxSourceLen = 0;
-        for (auto sv : providerNames)
-            maxSourceLen = std::max(maxSourceLen, sv.size());
+        for (auto sv : providerNames) maxSourceLen = std::max(maxSourceLen, sv.size());
 
         LOG_I("Resolving config [{} provider(s)]:", kTotalProviders);
 
@@ -73,8 +66,7 @@ class ConfigManager : public ConfigPublisher<Config> {
             }
 
             if (!source.empty()) {
-                LOG_I("  {:<{}} = {}  [{:<{}}]", dst.name(), maxParamLen, dst.valueToString(), source,
-                      maxSourceLen);
+                LOG_I("  {:<{}} = {}  [{:<{}}]", dst.name(), maxParamLen, dst.valueToString(), source, maxSourceLen);
             }
         }
 

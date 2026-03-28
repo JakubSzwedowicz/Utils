@@ -15,8 +15,7 @@ class testConfigPublisher : public ::testing::Test {
     }
 
     void TearDown() override {
-        auto manager =
-            Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
+        auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
         manager->removeSubscriber(subscriber.get());
     }
 
@@ -26,8 +25,7 @@ class testConfigPublisher : public ::testing::Test {
 };
 
 TEST_F(testConfigPublisher, SetConfigTriggersPublish) {
-    auto manager =
-        Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
+    auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
     manager->addSubscriber(subscriber.get());
 
     EXPECT_EQ(subscriber->updateCount, 0);
@@ -45,8 +43,7 @@ TEST_F(testConfigPublisher, SetConfigTriggersPublish) {
 }
 
 TEST_F(testConfigPublisher, MultipleConfigUpdates) {
-    auto manager =
-        Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
+    auto manager = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<TestConfig>>::getManager();
     manager->addSubscriber(subscriber.get());
 
     for (int i = 0; i < 5; ++i) {

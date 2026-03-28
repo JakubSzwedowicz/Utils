@@ -54,13 +54,13 @@ class CLIConfigParser : public IConfigParser<Config, std::pair<int, char**>> {
             std::string paramValue;
 
             if (const auto eq = arg.find('='); eq != std::string_view::npos) {
-                paramName  = std::string(arg.substr(0, eq));
+                paramName = std::string(arg.substr(0, eq));
                 paramValue = std::string(arg.substr(eq + 1));
             } else if (i + 1 < argc && !std::string_view(argv[i + 1]).starts_with('-')) {
-                paramName  = std::string(arg);
+                paramName = std::string(arg);
                 paramValue = std::string(argv[++i]);
             } else {
-                paramName  = std::string(arg);
+                paramName = std::string(arg);
                 paramValue = "true";
             }
 
