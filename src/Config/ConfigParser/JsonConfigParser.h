@@ -9,21 +9,19 @@
 #include "IConfigParser.h"
 #include "glaze/glaze.hpp"
 
-namespace Utils {
-namespace Config {
+namespace Utils::Config::ConfigParser {
 
 template <typename Config>
-class JsonConfigParser : public IConfigParser<Config> {
+class JsonConfigParser : public IConfigParser<Config, std::istream&> {
    public:
-    JsonConfigParser() { static_assert(glz::reflectable<Config>); }
+    JsonConfigParser() { static_assert(glz::reflectable<Config> || glz::glaze_object_t<Config>); }
 
-    std::shared_ptr<Config> readConfig(std::istream& jsonStream) const {
+    std::shared_ptr<Config> readConfig(std::istream& jsonStream) const override {
         std::string json((std::istreambuf_iterator<char>(jsonStream)), std::istreambuf_iterator<char>());
 
-        Config config;
-        auto ec = glz::read_json(config, json);
+        auto config = std::make_shared<Config>();
+        auto ec = glz::read_json(*config, json);
         if (ec) {
-            // Fix: Correct error message for reading (not writing)
             std::cerr << "Error reading JSON config: " << static_cast<uint32_t>(ec);
 
             if (ec == glz::error_code::unknown_key) {
@@ -33,7 +31,7 @@ class JsonConfigParser : public IConfigParser<Config> {
             std::cerr << std::endl;
             return nullptr;
         }
-        return std::make_shared<Config>(config);
+        return config;
     }
 
     int writeConfig(const Config& config, std::ostream& out) const {
@@ -48,5 +46,4 @@ class JsonConfigParser : public IConfigParser<Config> {
     }
 };
 
-}  // namespace Config
-}  // namespace Utils
+}  // namespace Utils::Config::ConfigParser

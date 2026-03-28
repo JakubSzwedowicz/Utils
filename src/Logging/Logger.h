@@ -24,10 +24,10 @@ class Logger {
 
     const std::string& getName() const;
 
-    void onUpdate(const std::shared_ptr<LoggerConfig>& newConfig);
+    virtual void onUpdate(const std::shared_ptr<LoggerConfig>& newConfig);
 
     template <LogLevel Level>
-    void log(std::string_view message);
+    void log(const char* file, int line, const char* func, std::string_view message);
 
     void flush();
 

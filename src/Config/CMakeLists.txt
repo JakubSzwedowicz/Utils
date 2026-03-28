@@ -7,8 +7,15 @@ target_sources(Config
         FILE_SET HEADERS
         BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/..
         FILES
-            IConfigProvider.h
-            ConfigManagers.h
+            ConfigPublisher.h
+            ConfigManager.h
+            ConfigManagerWithLogger.h
+            ConfigParameters/ConfigParameter.h
+            ConfigParameters/ConfigParametersContainer.h
+            Providers/IConfigProvider.h
+            Providers/DefaultConfigProvider.h
+            Providers/CLIConfigProvider.h
+            Providers/JsonConfigProvider.h
 )
 
 target_include_directories(Config
@@ -21,4 +28,5 @@ add_subdirectory(ConfigParser)
 target_link_libraries(Config
     INTERFACE
         Utils::ConfigParser
+        Utils::Logging
 )

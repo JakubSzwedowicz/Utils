@@ -2,8 +2,11 @@ add_executable(
     UtilsConfigTest
     testConfigProvider.cpp
     testConfigPublisher.cpp
+    testConfigManager.cpp
+    testCLIConfigProvider.cpp
     testJsonConfigParser.cpp
     testLogging.cpp
+    testJsonConfigProvider.cpp
 )
 
 target_link_libraries(
