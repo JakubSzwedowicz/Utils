@@ -28,5 +28,7 @@ add_subdirectory(ConfigParser)
 target_link_libraries(Config
     INTERFACE
         Utils::ConfigParser
+        Utils::Providers
         Utils::Logging
+        Utils::Runnables
 )

@@ -7,12 +7,14 @@
 #include <memory>
 #include <string_view>
 
+#include "Providers/IResourceProvider.h"
+
 namespace Utils::Config::Providers {
 
+// getConfig() returns the last parsed config without draining the poll() flag.
 template <typename Config>
-class IConfigProvider {
+class IConfigProvider : public Utils::Providers::IResourceProvider<std::shared_ptr<Config>> {
    public:
-    virtual ~IConfigProvider() = default;
     virtual std::shared_ptr<const Config> getConfig() const = 0;
     virtual std::string_view name() const = 0;
 };

@@ -3,16 +3,14 @@
 //
 
 #pragma once
+
 #include <memory>
+
+#include "Providers/IParser.h"
 
 namespace Utils::Config::ConfigParser {
 
 template <typename Config, typename Source>
-class IConfigParser {
-   public:
-    virtual ~IConfigParser() = default;
-
-    virtual std::shared_ptr<Config> readConfig(Source source) const = 0;
-};
+using IConfigParser = Utils::Providers::IParser<Source, std::shared_ptr<Config>>;
 
 }  // namespace Utils::Config::ConfigParser

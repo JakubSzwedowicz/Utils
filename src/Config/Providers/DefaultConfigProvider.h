@@ -5,6 +5,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include "Providers/IConfigProvider.h"
@@ -16,6 +17,8 @@ class DefaultConfigProvider : public IConfigProvider<Config> {
    public:
     DefaultConfigProvider() : m_config(std::make_shared<Config>()) { m_config->m_container.applyDefaults(); }
 
+    void run() override {}
+    std::optional<std::shared_ptr<Config>> poll() override { return std::nullopt; }
     std::shared_ptr<const Config> getConfig() const override { return m_config; }
     std::string_view name() const override { return "default"; }
 

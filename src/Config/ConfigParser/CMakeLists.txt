@@ -14,7 +14,7 @@ target_sources(ConfigParser
 )
 
 find_package(glaze REQUIRED)
-target_link_libraries(ConfigParser PUBLIC glaze::glaze Utils::Logging)
+target_link_libraries(ConfigParser PUBLIC glaze::glaze Utils::Logging Utils::Providers)
 target_compile_features(ConfigParser PUBLIC cxx_std_23)
 
 target_include_directories(ConfigParser
