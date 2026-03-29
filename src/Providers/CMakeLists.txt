@@ -12,6 +12,7 @@ target_sources(Providers
             ISourceProvider.h
             IResourceProvider.h
             ResourceProvider.h
+            QueuedResourceProvider.h
             FileSourceProvider.h
 )
 
