@@ -36,8 +36,7 @@ class CLIConfigParser : public Utils::Providers::IParser<std::pair<int, char**>,
         }
 
         for (const auto& [key, value] : parsed) {
-            if (!matched.contains(key))
-                LOG_W("CLIConfigParser: unrecognized argument '--{}' (ignored)", key);
+            if (!matched.contains(key)) LOG_W("CLIConfigParser: unrecognized argument '--{}' (ignored)", key);
         }
 
         return config;
