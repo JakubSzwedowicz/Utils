@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include "Logging/Logger.h"
@@ -24,15 +25,21 @@ class CLIConfigParser : public Utils::Providers::IParser<std::pair<int, char**>,
         auto config = std::make_shared<Config>();
         const auto parsed = parseArgs(args.first, args.second);
 
+        std::unordered_set<std::string> matched;
         for (size_t i = 0; i < config->m_container.size(); ++i) {
             auto& slot = config->m_container.at(i);
             auto it = parsed.find(std::string(slot.name()));
             if (it == parsed.end()) continue;
-
-            if (!slot.setFromString(it->second)) {
-                LOG_W("CLIConfigParser: failed to parse '{}' for parameter '{}'", it->second, slot.name());
-            }
+            matched.insert(it->first);
+            if (!slot.setFromString(it->second))
+                LOG_W("CLIConfigParser: failed to parse '{}' for '{}'", it->second, slot.name());
         }
+
+        for (const auto& [key, value] : parsed) {
+            if (!matched.contains(key))
+                LOG_W("CLIConfigParser: unrecognized argument '--{}' (ignored)", key);
+        }
+
         return config;
     }
 

@@ -17,20 +17,23 @@ class ConfigManagerWithLogger : public ConfigManager<Config, Providers...>,
     using ConfigManager<Config, Providers...>::ConfigManager;
 
     void setConfig(std::shared_ptr<const Config> config) override {
-        // Publish the main application config
         ConfigManager<Config, Providers...>::setConfig(config);
 
         if (config) {
-            // Extract the LoggerConfig from the application Config
             auto newLoggerConfig = std::make_shared<Logging::LoggerConfig>(config->loggerConfig.get());
-
-            // Check if we already have an active logger config
-            auto currentLoggerConfig = ConfigPublisher<Logging::LoggerConfig>::getConfig();
-
-            // Only publish an update if the logger configuration has actually changed
-            if (!currentLoggerConfig || *currentLoggerConfig != *newLoggerConfig) {
+            auto current = ConfigPublisher<Logging::LoggerConfig>::getConfig();
+            if (!current || *current != *newLoggerConfig) {
                 ConfigPublisher<Logging::LoggerConfig>::setConfig(newLoggerConfig);
             }
+        }
+    }
+
+   protected:
+    void beforeLogging(const Config& resolved) override {
+        auto newLoggerConfig = std::make_shared<Logging::LoggerConfig>(resolved.loggerConfig.get());
+        auto current = ConfigPublisher<Logging::LoggerConfig>::getConfig();
+        if (!current || *current != *newLoggerConfig) {
+            ConfigPublisher<Logging::LoggerConfig>::setConfig(newLoggerConfig);
         }
     }
 };

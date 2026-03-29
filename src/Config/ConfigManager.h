@@ -70,6 +70,8 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
         size_t maxSourceLen = 0;
         for (auto sv : providerNames) maxSourceLen = std::max(maxSourceLen, sv.size());
 
+        beforeLogging(*resolved);
+
         LOG_I("Resolving config [{} provider(s)]:", kTotalProviders);
 
         for (size_t i = 0; i < resolved->m_container.size(); ++i) {
@@ -97,6 +99,9 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
             LOG_I("Config unchanged — no update published.");
         }
     }
+
+   protected:
+    virtual void beforeLogging(const Config&) {}
 
    private:
     std::tuple<std::unique_ptr<Providers>..., std::unique_ptr<DefaultProvider>> m_providers;

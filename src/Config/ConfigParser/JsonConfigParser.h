@@ -3,10 +3,11 @@
 //
 #pragma once
 
-#include <iostream>
 #include <memory>
 #include <string>
 
+#include "Logging/Logger.h"
+#include "Logging/LoggerMacros.h"
 #include "Providers/IParser.h"
 #include "glaze/glaze.hpp"
 
@@ -23,12 +24,19 @@ class JsonConfigParser : public Utils::Providers::IParser<std::string, std::shar
     std::shared_ptr<Config> parse(std::string json) override {
         auto config = std::make_shared<Config>();
         auto ec = glz::read_json(*config, json);
+
+        if (ec == glz::error_code::unknown_key) {
+            LOG_W("JsonConfigParser: JSON contains unrecognized field(s): {}", glz::format_error(ec, json));
+            config = std::make_shared<Config>();
+            (void)glz::read<glz::opts{.error_on_unknown_keys = false}>(*config, json);
+            return config;
+        }
+
         if (ec) {
-            std::cerr << "JsonConfigParser: error reading JSON: " << static_cast<uint32_t>(ec);
-            if (ec == glz::error_code::unknown_key) std::cerr << " (unknown_key — JSON contains fields not in struct)";
-            std::cerr << '\n';
+            LOG_E("JsonConfigParser: failed to parse JSON: {}", glz::format_error(ec, json));
             return nullptr;
         }
+
         return config;
     }
 
@@ -41,12 +49,15 @@ class JsonConfigParser : public Utils::Providers::IParser<std::string, std::shar
         std::string json;
         auto ec = glz::write_json(config, json);
         if (ec) {
-            std::cerr << "JsonConfigParser: error writing JSON: " << ec << '\n';
+            LOG_E("JsonConfigParser: error writing JSON: {}", glz::format_error(ec, json));
         } else {
             out << json;
         }
         return ec;
     }
+
+   private:
+    mutable Utils::Logging::Logger m_logger{"JsonConfigParser"};
 };
 
 }  // namespace Utils::Config::ConfigParser
