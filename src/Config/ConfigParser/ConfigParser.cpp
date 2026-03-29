@@ -1,10 +1,7 @@
-#include "IConfigParser.h"
 #include "JsonConfigParser.h"
 
-namespace Utils {
-namespace Config {
+namespace Utils::Config::ConfigParser {
 
-// Exists to provide a compilation unit for the static library
+// Compilation unit for the ConfigParser static library.
 
-}  // namespace Config
-}  // namespace Utils
+}  // namespace Utils::Config::ConfigParser

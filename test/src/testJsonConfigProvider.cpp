@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <sstream>
+#include <memory>
 #include <string>
 
 #include "Config/ConfigManager.h"
@@ -11,21 +11,31 @@ using namespace Utils::Config::Providers;
 using Utils::Config::ConfigManager;
 
 // ── JsonConfigProvider<TestConfig> ───────────────────────────────────────────
+//
+// Each fixture wires a StringSourceProvider into the provider under test.
+// push(json) + run() replaces the old update(stream) API.
 
 class testJsonConfigProvider : public ::testing::Test {
    protected:
-    JsonConfigProvider<TestConfig> provider;
+    void SetUp() override {
+        auto src = std::make_unique<StringSourceProvider>();
+        m_src = src.get();
+        m_provider = std::make_unique<JsonConfigProvider<TestConfig>>(std::move(src));
+    }
+
+    StringSourceProvider* m_src{nullptr};
+    std::unique_ptr<JsonConfigProvider<TestConfig>> m_provider;
 };
 
-TEST_F(testJsonConfigProvider, NameIsCorrect) { EXPECT_EQ(provider.name(), "JsonConfigProvider"); }
+TEST_F(testJsonConfigProvider, NameIsCorrect) { EXPECT_EQ(m_provider->name(), "JsonConfigProvider"); }
 
-TEST_F(testJsonConfigProvider, InitialGetConfigReturnsNull) { EXPECT_EQ(provider.getConfig(), nullptr); }
+TEST_F(testJsonConfigProvider, InitialGetConfigReturnsNull) { EXPECT_EQ(m_provider->getConfig(), nullptr); }
 
 TEST_F(testJsonConfigProvider, ParsesAllFlatFields) {
-    std::stringstream ss(R"({"name":"json_test","value":42,"rate":1.5,"enabled":true})");
-    provider.update(ss);
+    m_src->push(R"({"name":"json_test","value":42,"rate":1.5,"enabled":true})");
+    m_provider->run();
 
-    auto cfg = provider.getConfig();
+    auto cfg = m_provider->getConfig();
     ASSERT_NE(cfg, nullptr);
     ASSERT_TRUE(cfg->name.hasValue());
     EXPECT_EQ(cfg->name.get(), "json_test");
@@ -38,24 +48,24 @@ TEST_F(testJsonConfigProvider, ParsesAllFlatFields) {
 }
 
 TEST_F(testJsonConfigProvider, InvalidJsonReturnsNullConfig) {
-    std::stringstream ss("{not valid json}");
-    provider.update(ss);
+    m_src->push("{not valid json}");
+    m_provider->run();
 
-    EXPECT_EQ(provider.getConfig(), nullptr);
+    EXPECT_EQ(m_provider->getConfig(), nullptr);
 }
 
-TEST_F(testJsonConfigProvider, EmptyStreamReturnsNullConfig) {
-    std::stringstream ss("");
-    provider.update(ss);
+TEST_F(testJsonConfigProvider, EmptyStringReturnsNullConfig) {
+    m_src->push("");
+    m_provider->run();
 
-    EXPECT_EQ(provider.getConfig(), nullptr);
+    EXPECT_EQ(m_provider->getConfig(), nullptr);
 }
 
 TEST_F(testJsonConfigProvider, PartialJsonOnlySetsSpecifiedFields) {
-    std::stringstream ss(R"({"name":"partial","value":99})");
-    provider.update(ss);
+    m_src->push(R"({"name":"partial","value":99})");
+    m_provider->run();
 
-    auto cfg = provider.getConfig();
+    auto cfg = m_provider->getConfig();
     ASSERT_NE(cfg, nullptr);
     ASSERT_TRUE(cfg->name.hasValue());
     EXPECT_EQ(cfg->name.get(), "partial");
@@ -66,18 +76,34 @@ TEST_F(testJsonConfigProvider, PartialJsonOnlySetsSpecifiedFields) {
     EXPECT_FALSE(cfg->enabled.hasValue());
 }
 
+TEST_F(testJsonConfigProvider, PollReturnsTrueAfterRun) {
+    m_src->push(R"({"name":"poll_test","value":1})");
+    m_provider->run();
+
+    EXPECT_TRUE(m_provider->poll().has_value());
+    // Second poll with no new run() returns nullopt
+    EXPECT_FALSE(m_provider->poll().has_value());
+}
+
 // ── JsonConfigProvider<NestedTestConfig> — LoggerConfig embedding ─────────────
 
 class testJsonConfigProviderNested : public ::testing::Test {
    protected:
-    JsonConfigProvider<NestedTestConfig> provider;
+    void SetUp() override {
+        auto src = std::make_unique<StringSourceProvider>();
+        m_src = src.get();
+        m_provider = std::make_unique<JsonConfigProvider<NestedTestConfig>>(std::move(src));
+    }
+
+    StringSourceProvider* m_src{nullptr};
+    std::unique_ptr<JsonConfigProvider<NestedTestConfig>> m_provider;
 };
 
 TEST_F(testJsonConfigProviderNested, ParsesNestedLoggerConfig) {
-    std::stringstream ss(R"({"port":9090,"loggerConfig":{"filename":"json_test.log","globalLogLevel":2}})");
-    provider.update(ss);
+    m_src->push(R"({"port":9090,"loggerConfig":{"filename":"json_test.log","globalLogLevel":2}})");
+    m_provider->run();
 
-    auto cfg = provider.getConfig();
+    auto cfg = m_provider->getConfig();
     ASSERT_NE(cfg, nullptr);
     ASSERT_TRUE(cfg->port.hasValue());
     EXPECT_EQ(cfg->port.get(), 9090);
@@ -89,10 +115,10 @@ TEST_F(testJsonConfigProviderNested, ParsesNestedLoggerConfig) {
 
 TEST_F(testJsonConfigProviderNested, PartialLoggerConfigUsesStructDefaults) {
     // Only filename supplied — globalLogLevel stays at its struct default (INFO)
-    std::stringstream ss(R"({"port":8080,"loggerConfig":{"filename":"partial.log"}})");
-    provider.update(ss);
+    m_src->push(R"({"port":8080,"loggerConfig":{"filename":"partial.log"}})");
+    m_provider->run();
 
-    auto cfg = provider.getConfig();
+    auto cfg = m_provider->getConfig();
     ASSERT_NE(cfg, nullptr);
     ASSERT_TRUE(cfg->loggerConfig.hasValue());
     EXPECT_EQ(cfg->loggerConfig.get().filename, "partial.log");
@@ -100,7 +126,7 @@ TEST_F(testJsonConfigProviderNested, PartialLoggerConfigUsesStructDefaults) {
 }
 
 TEST_F(testJsonConfigProviderNested, LoggersLogLevelsParsed) {
-    std::stringstream ss(R"({
+    m_src->push(R"({
         "port": 8080,
         "loggerConfig": {
             "filename": "lvl.log",
@@ -108,9 +134,9 @@ TEST_F(testJsonConfigProviderNested, LoggersLogLevelsParsed) {
             "loggersLogLevels": { "db": 3, "net": 0 }
         }
     })");
-    provider.update(ss);
+    m_provider->run();
 
-    auto cfg = provider.getConfig();
+    auto cfg = m_provider->getConfig();
     ASSERT_NE(cfg, nullptr);
     ASSERT_TRUE(cfg->loggerConfig.hasValue());
     const auto& lc = cfg->loggerConfig.get();
@@ -121,10 +147,13 @@ TEST_F(testJsonConfigProviderNested, LoggersLogLevelsParsed) {
 // ── Inside ConfigManager ──────────────────────────────────────────────────────
 
 TEST(testJsonConfigProviderInManager, JsonOverridesDefault) {
-    ConfigManager<NestedTestConfig, JsonConfigProvider<NestedTestConfig>> manager;
+    auto source = std::make_unique<StringSourceProvider>();
+    StringSourceProvider* src = source.get();
+    ConfigManager<NestedTestConfig, JsonConfigProvider<NestedTestConfig>> manager(
+        std::make_unique<JsonConfigProvider<NestedTestConfig>>(std::move(source)));
 
-    std::stringstream ss(R"({"port":7777,"loggerConfig":{"filename":"mgr.log","globalLogLevel":0}})");
-    manager.update<JsonConfigProvider<NestedTestConfig>>(ss);
+    src->push(R"({"port":7777,"loggerConfig":{"filename":"mgr.log","globalLogLevel":0}})");
+    manager.run();
 
     auto cfg = manager.getConfig();
     ASSERT_NE(cfg, nullptr);
@@ -134,11 +163,14 @@ TEST(testJsonConfigProviderInManager, JsonOverridesDefault) {
 }
 
 TEST(testJsonConfigProviderInManager, UnsetFieldsFallBackToDefault) {
-    ConfigManager<NestedTestConfig, JsonConfigProvider<NestedTestConfig>> manager;
+    auto source = std::make_unique<StringSourceProvider>();
+    StringSourceProvider* src = source.get();
+    ConfigManager<NestedTestConfig, JsonConfigProvider<NestedTestConfig>> manager(
+        std::make_unique<JsonConfigProvider<NestedTestConfig>>(std::move(source)));
 
     // Only port is in JSON — loggerConfig falls back to DefaultConfigProvider value
-    std::stringstream ss(R"({"port":1234})");
-    manager.update<JsonConfigProvider<NestedTestConfig>>(ss);
+    src->push(R"({"port":1234})");
+    manager.run();
 
     auto cfg = manager.getConfig();
     ASSERT_NE(cfg, nullptr);

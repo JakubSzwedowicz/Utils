@@ -1,3 +1,5 @@
+add_subdirectory(Runnables)
+add_subdirectory(Providers)
 add_subdirectory(PublishSubscribe)
 add_subdirectory(Logging)
 add_subdirectory(Config)
@@ -9,6 +11,8 @@ target_compile_features(Utils INTERFACE cxx_std_23)
 
 target_link_libraries(Utils
     INTERFACE
+        Utils::Runnables
+        Utils::Providers
         Utils::Config
         Utils::Logging
         Utils::PublishSubscribe
@@ -20,7 +24,7 @@ target_include_directories(Utils
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Utils>
 )
 
-install(TARGETS Utils Config Logging ConfigParser PublishSubscribe
+install(TARGETS Utils Runnables Providers Config Logging ConfigParser PublishSubscribe
         EXPORT UtilsTargets
         FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Utils
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

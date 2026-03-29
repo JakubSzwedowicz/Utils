@@ -4,26 +4,48 @@
 
 #pragma once
 
-#include <istream>
 #include <memory>
+#include <optional>
+#include <string>
 #include <string_view>
+#include <utility>
 
 #include "ConfigParser/JsonConfigParser.h"
 #include "Providers/IConfigProvider.h"
+#include "Providers/ISourceProvider.h"
+#include "Providers/ResourceProvider.h"
 
 namespace Utils::Config::Providers {
 
 template <typename Config>
 class JsonConfigProvider : public IConfigProvider<Config> {
    public:
-    void update(std::istream& stream) { m_config = m_parser.readConfig(stream); }
+    explicit JsonConfigProvider(std::unique_ptr<Utils::Providers::ISourceProvider<std::string>> source)
+        : m_resource(std::move(source), std::make_unique<ConfigParser::JsonConfigParser<Config>>()) {}
 
-    std::shared_ptr<const Config> getConfig() const override { return m_config; }
+    void run() override {
+        m_resource.run();
+        if (auto cfg = m_resource.poll()) {
+            m_lastConfig = std::move(*cfg);
+            m_hasNew = true;
+        }
+    }
+
+    std::optional<std::shared_ptr<Config>> poll() override {
+        if (m_hasNew) {
+            m_hasNew = false;
+            return m_lastConfig;
+        }
+        return std::nullopt;
+    }
+
+    std::shared_ptr<const Config> getConfig() const override { return m_lastConfig; }
     std::string_view name() const override { return "JsonConfigProvider"; }
 
    private:
-    ConfigParser::JsonConfigParser<Config> m_parser;
-    std::shared_ptr<Config> m_config;
+    Utils::Providers::ResourceProvider<std::shared_ptr<Config>, std::string> m_resource;
+    std::shared_ptr<Config> m_lastConfig;
+    bool m_hasNew{false};
 };
 
 }  // namespace Utils::Config::Providers

@@ -12,16 +12,28 @@
 #include "Logging/Logger.h"
 #include "Logging/LoggerMacros.h"
 #include "Providers/DefaultConfigProvider.h"
+#include "Runnables/IRunnable.h"
 
 namespace Utils::Config {
 
 template <typename Config, typename... Providers>
-class ConfigManager : public ConfigPublisher<Config> {
+class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnable {
     using DefaultProvider = Utils::Config::Providers::DefaultConfigProvider<Config>;
     static constexpr size_t kTotalProviders = sizeof...(Providers) + 1;
 
    public:
-    ConfigManager() : m_providers(std::make_unique<Providers>()..., std::make_unique<DefaultProvider>()) { resolve(); }
+    ConfigManager()
+        requires(std::default_initializable<Providers> && ...)
+        : m_providers(std::make_unique<Providers>()..., std::make_unique<DefaultProvider>()) {
+        resolve();
+    }
+
+    // Only available when pack is non-empty to avoid ambiguity with the default constructor.
+    explicit ConfigManager(std::unique_ptr<Providers>... providers)
+        requires(sizeof...(Providers) > 0)
+        : m_providers(std::move(providers)..., std::make_unique<DefaultProvider>()) {
+        resolve();
+    }
 
     template <typename T>
     T& getProvider() {
@@ -32,6 +44,13 @@ class ConfigManager : public ConfigPublisher<Config> {
     void update(Args&&... args) {
         getProvider<T>().update(std::forward<Args>(args)...);
         resolve();
+        getProvider<T>().poll();  // drain so run() doesn't re-resolve redundantly
+    }
+
+    void run() override {
+        bool anyChanged = false;
+        std::apply([&](auto&... ptrs) { ((ptrs->run(), anyChanged |= ptrs->poll().has_value()), ...); }, m_providers);
+        if (anyChanged) resolve();
     }
 
     void resolve() {

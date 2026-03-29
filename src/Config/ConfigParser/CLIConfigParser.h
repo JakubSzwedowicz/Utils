@@ -11,16 +11,16 @@
 #include <unordered_map>
 #include <utility>
 
-#include "IConfigParser.h"
 #include "Logging/Logger.h"
 #include "Logging/LoggerMacros.h"
+#include "Providers/IParser.h"
 
 namespace Utils::Config::ConfigParser {
 
 template <typename Config>
-class CLIConfigParser : public IConfigParser<Config, std::pair<int, char**>> {
+class CLIConfigParser : public Utils::Providers::IParser<std::pair<int, char**>, std::shared_ptr<Config>> {
    public:
-    std::shared_ptr<Config> readConfig(std::pair<int, char**> args) const override {
+    std::shared_ptr<Config> parse(std::pair<int, char**> args) override {
         auto config = std::make_shared<Config>();
         const auto parsed = parseArgs(args.first, args.second);
 
@@ -30,7 +30,7 @@ class CLIConfigParser : public IConfigParser<Config, std::pair<int, char**>> {
             if (it == parsed.end()) continue;
 
             if (!slot.setFromString(it->second)) {
-                LOG_W("Failed to parse '{}' for parameter '{}'", it->second, slot.name());
+                LOG_W("CLIConfigParser: failed to parse '{}' for parameter '{}'", it->second, slot.name());
             }
         }
         return config;
