@@ -17,8 +17,7 @@ namespace Utils::Providers {
 template <typename Resource, typename Source>
 class ResourceProvider : public IResourceProvider<Resource> {
    public:
-    ResourceProvider(std::unique_ptr<ISourceProvider<Source>> source,
-                     std::unique_ptr<IParser<Source, Resource>> parser)
+    ResourceProvider(std::unique_ptr<ISourceProvider<Source>> source, std::unique_ptr<IParser<Source, Resource>> parser)
         : m_source(std::move(source)), m_parser(std::move(parser)) {}
 
     void run() override {

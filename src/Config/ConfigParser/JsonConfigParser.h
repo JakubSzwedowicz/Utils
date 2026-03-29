@@ -25,8 +25,7 @@ class JsonConfigParser : public Utils::Providers::IParser<std::string, std::shar
         auto ec = glz::read_json(*config, json);
         if (ec) {
             std::cerr << "JsonConfigParser: error reading JSON: " << static_cast<uint32_t>(ec);
-            if (ec == glz::error_code::unknown_key)
-                std::cerr << " (unknown_key — JSON contains fields not in struct)";
+            if (ec == glz::error_code::unknown_key) std::cerr << " (unknown_key — JSON contains fields not in struct)";
             std::cerr << '\n';
             return nullptr;
         }

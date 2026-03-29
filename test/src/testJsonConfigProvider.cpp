@@ -37,10 +37,14 @@ TEST_F(testJsonConfigProvider, ParsesAllFlatFields) {
 
     auto cfg = m_provider->getConfig();
     ASSERT_NE(cfg, nullptr);
-    ASSERT_TRUE(cfg->name.hasValue());    EXPECT_EQ(cfg->name.get(),        "json_test");
-    ASSERT_TRUE(cfg->value.hasValue());   EXPECT_EQ(cfg->value.get(),       42);
-    ASSERT_TRUE(cfg->rate.hasValue());    EXPECT_DOUBLE_EQ(cfg->rate.get(), 1.5);
-    ASSERT_TRUE(cfg->enabled.hasValue()); EXPECT_TRUE(cfg->enabled.get());
+    ASSERT_TRUE(cfg->name.hasValue());
+    EXPECT_EQ(cfg->name.get(), "json_test");
+    ASSERT_TRUE(cfg->value.hasValue());
+    EXPECT_EQ(cfg->value.get(), 42);
+    ASSERT_TRUE(cfg->rate.hasValue());
+    EXPECT_DOUBLE_EQ(cfg->rate.get(), 1.5);
+    ASSERT_TRUE(cfg->enabled.hasValue());
+    EXPECT_TRUE(cfg->enabled.get());
 }
 
 TEST_F(testJsonConfigProvider, InvalidJsonReturnsNullConfig) {
@@ -63,8 +67,10 @@ TEST_F(testJsonConfigProvider, PartialJsonOnlySetsSpecifiedFields) {
 
     auto cfg = m_provider->getConfig();
     ASSERT_NE(cfg, nullptr);
-    ASSERT_TRUE(cfg->name.hasValue());  EXPECT_EQ(cfg->name.get(),  "partial");
-    ASSERT_TRUE(cfg->value.hasValue()); EXPECT_EQ(cfg->value.get(), 99);
+    ASSERT_TRUE(cfg->name.hasValue());
+    EXPECT_EQ(cfg->name.get(), "partial");
+    ASSERT_TRUE(cfg->value.hasValue());
+    EXPECT_EQ(cfg->value.get(), 99);
     // Fields absent from JSON are not set
     EXPECT_FALSE(cfg->rate.hasValue());
     EXPECT_FALSE(cfg->enabled.hasValue());
@@ -103,7 +109,7 @@ TEST_F(testJsonConfigProviderNested, ParsesNestedLoggerConfig) {
     EXPECT_EQ(cfg->port.get(), 9090);
 
     ASSERT_TRUE(cfg->loggerConfig.hasValue());
-    EXPECT_EQ(cfg->loggerConfig.get().filename,       "json_test.log");
+    EXPECT_EQ(cfg->loggerConfig.get().filename, "json_test.log");
     EXPECT_EQ(cfg->loggerConfig.get().globalLogLevel, Utils::Logging::LogLevel::WARNING);
 }
 
@@ -115,7 +121,7 @@ TEST_F(testJsonConfigProviderNested, PartialLoggerConfigUsesStructDefaults) {
     auto cfg = m_provider->getConfig();
     ASSERT_NE(cfg, nullptr);
     ASSERT_TRUE(cfg->loggerConfig.hasValue());
-    EXPECT_EQ(cfg->loggerConfig.get().filename,       "partial.log");
+    EXPECT_EQ(cfg->loggerConfig.get().filename, "partial.log");
     EXPECT_EQ(cfg->loggerConfig.get().globalLogLevel, Utils::Logging::LogLevel::INFO);
 }
 
@@ -134,7 +140,7 @@ TEST_F(testJsonConfigProviderNested, LoggersLogLevelsParsed) {
     ASSERT_NE(cfg, nullptr);
     ASSERT_TRUE(cfg->loggerConfig.hasValue());
     const auto& lc = cfg->loggerConfig.get();
-    EXPECT_EQ(lc.loggersLogLevels.at("db"),  Utils::Logging::LogLevel::ERROR);
+    EXPECT_EQ(lc.loggersLogLevels.at("db"), Utils::Logging::LogLevel::ERROR);
     EXPECT_EQ(lc.loggersLogLevels.at("net"), Utils::Logging::LogLevel::DEBUG);
 }
 
@@ -151,8 +157,8 @@ TEST(testJsonConfigProviderInManager, JsonOverridesDefault) {
 
     auto cfg = manager.getConfig();
     ASSERT_NE(cfg, nullptr);
-    EXPECT_EQ(cfg->port.get(),                        7777);
-    EXPECT_EQ(cfg->loggerConfig.get().filename,       "mgr.log");
+    EXPECT_EQ(cfg->port.get(), 7777);
+    EXPECT_EQ(cfg->loggerConfig.get().filename, "mgr.log");
     EXPECT_EQ(cfg->loggerConfig.get().globalLogLevel, Utils::Logging::LogLevel::DEBUG);
 }
 
@@ -170,6 +176,6 @@ TEST(testJsonConfigProviderInManager, UnsetFieldsFallBackToDefault) {
     ASSERT_NE(cfg, nullptr);
     EXPECT_EQ(cfg->port.get(), 1234);
     // Default LoggerConfig has filename="mainLog.txt" and globalLogLevel=INFO
-    EXPECT_EQ(cfg->loggerConfig.get().filename,       "mainLog.txt");
+    EXPECT_EQ(cfg->loggerConfig.get().filename, "mainLog.txt");
     EXPECT_EQ(cfg->loggerConfig.get().globalLogLevel, Utils::Logging::LogLevel::INFO);
 }

@@ -22,14 +22,15 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
     static constexpr size_t kTotalProviders = sizeof...(Providers) + 1;
 
    public:
-    ConfigManager() requires (std::default_initializable<Providers> && ...)
+    ConfigManager()
+        requires(std::default_initializable<Providers> && ...)
         : m_providers(std::make_unique<Providers>()..., std::make_unique<DefaultProvider>()) {
         resolve();
     }
 
     // Only available when pack is non-empty to avoid ambiguity with the default constructor.
     explicit ConfigManager(std::unique_ptr<Providers>... providers)
-        requires (sizeof...(Providers) > 0)
+        requires(sizeof...(Providers) > 0)
         : m_providers(std::move(providers)..., std::make_unique<DefaultProvider>()) {
         resolve();
     }
@@ -48,9 +49,7 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
 
     void run() override {
         bool anyChanged = false;
-        std::apply(
-            [&](auto&... ptrs) { ((ptrs->run(), anyChanged |= ptrs->poll().has_value()), ...); },
-            m_providers);
+        std::apply([&](auto&... ptrs) { ((ptrs->run(), anyChanged |= ptrs->poll().has_value()), ...); }, m_providers);
         if (anyChanged) resolve();
     }
 

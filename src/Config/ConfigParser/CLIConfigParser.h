@@ -11,9 +11,9 @@
 #include <unordered_map>
 #include <utility>
 
-#include "Providers/IParser.h"
 #include "Logging/Logger.h"
 #include "Logging/LoggerMacros.h"
+#include "Providers/IParser.h"
 
 namespace Utils::Config::ConfigParser {
 
