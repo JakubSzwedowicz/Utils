@@ -17,6 +17,8 @@ class FileSourceProvider : public ISourceProvider<std::string> {
    public:
     explicit FileSourceProvider(std::filesystem::path path);
 
+    void setPath(std::filesystem::path path);
+
     void run() override;
     std::optional<std::string> poll() override;
 

@@ -14,6 +14,8 @@ template <typename Config, typename... Providers>
 class ConfigManagerWithLogger : public ConfigManager<Config, Providers...>,
                                 public ConfigPublisher<Logging::LoggerConfig> {
    public:
+    using ConfigManager<Config, Providers...>::ConfigManager;
+
     void setConfig(std::shared_ptr<const Config> config) override {
         // Publish the main application config
         ConfigManager<Config, Providers...>::setConfig(config);

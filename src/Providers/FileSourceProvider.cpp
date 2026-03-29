@@ -14,6 +14,11 @@ namespace Utils::Providers {
 
 FileSourceProvider::FileSourceProvider(std::filesystem::path path) : m_path(std::move(path)) {}
 
+void FileSourceProvider::setPath(std::filesystem::path path) {
+    m_path = std::move(path);
+    m_lastMtime = {};
+}
+
 void FileSourceProvider::run() {
     std::error_code ec;
     const auto mtime = std::filesystem::last_write_time(m_path, ec);
