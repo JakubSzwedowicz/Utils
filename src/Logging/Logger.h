@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "LoggerConfig.h"
+#include "PublishSubscribe/IPublisherSubscriber.h"
 
 namespace spdlog {
 class logger;
@@ -16,15 +17,15 @@ class sink;
 
 namespace Utils::Logging {
 
-class Logger {
+class Logger : public PublishSubscribe::ISubscriber<std::shared_ptr<const LoggerConfig>> {
    public:
-    explicit Logger(std::string name, std::shared_ptr<LoggerConfig> config = nullptr);
+    explicit Logger(std::string name, std::shared_ptr<const LoggerConfig> config = nullptr);
 
     static Logger& getInstance();
 
     const std::string& getName() const;
 
-    virtual void onUpdate(const std::shared_ptr<LoggerConfig>& newConfig);
+    void onUpdate(const std::shared_ptr<const LoggerConfig>& newConfig) override;
 
     template <LogLevel Level>
     void log(const char* file, int line, const char* func, std::string_view message);
@@ -39,12 +40,12 @@ class Logger {
     void updateLoggerLevel();
 
     static std::shared_ptr<spdlog::logger> buildLogger(const std::string& name,
-                                                       const std::shared_ptr<LoggerConfig>& config);
+                                                       const std::shared_ptr<const LoggerConfig>& config);
 
    private:
     std::string m_name;
     mutable std::mutex m_mutex;
-    std::shared_ptr<LoggerConfig> m_config = std::make_shared<LoggerConfig>();
+    std::shared_ptr<const LoggerConfig> m_config = std::make_shared<LoggerConfig>();
 
     const std::shared_ptr<spdlog::logger> m_logger;
 };

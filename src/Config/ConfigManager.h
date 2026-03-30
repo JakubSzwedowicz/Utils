@@ -6,15 +6,21 @@
 
 #include <array>
 #include <memory>
+#include <string>
 #include <tuple>
+#include <vector>
 
 #include "ConfigPublisher.h"
 #include "Logging/Logger.h"
+#include "Logging/LoggerConfig.h"
 #include "Logging/LoggerMacros.h"
 #include "Providers/DefaultConfigProvider.h"
 #include "Runnables/IRunnable.h"
 
 namespace Utils::Config {
+
+template <typename T>
+concept HasLoggerConfig = requires(const T& t) { t.loggerConfig.get(); };
 
 template <typename Config, typename... Providers>
 class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnable {
@@ -53,6 +59,24 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
         if (anyChanged) resolve();
     }
 
+    void setConfig(std::shared_ptr<const Config> config) override {
+        ConfigPublisher<Config>::setConfig(config);
+        if constexpr (HasLoggerConfig<Config>) {
+            if (config) {
+                auto lc = std::make_shared<Logging::LoggerConfig>(config->loggerConfig.get());
+                auto current = m_loggerConfigPublisher.getConfig();
+                if (!current || *current != *lc)
+                    m_loggerConfigPublisher.setConfig(lc);
+            }
+        }
+    }
+
+    std::shared_ptr<const Logging::LoggerConfig> getLoggerConfig() const {
+        return m_loggerConfigPublisher.getConfig();
+    }
+
+    void addLogSink(std::shared_ptr<spdlog::sinks::sink> sink) { m_logger.addSink(sink); }
+
     void resolve() {
         auto resolved = std::make_shared<Config>();
 
@@ -70,14 +94,16 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
         size_t maxSourceLen = 0;
         for (auto sv : providerNames) maxSourceLen = std::max(maxSourceLen, sv.size());
 
-        beforeLogging(*resolved);
-
-        LOG_I("Resolving config [{} provider(s)]:", kTotalProviders);
+        struct ParamLog {
+            std::string_view name;
+            std::string value;
+            std::string_view source;
+        };
+        std::vector<ParamLog> paramLogs;
 
         for (size_t i = 0; i < resolved->m_container.size(); ++i) {
             auto& dst = resolved->m_container.at(i);
             std::string_view source;
-
             for (size_t pi = 0; pi < kTotalProviders; ++pi) {
                 if (auto& cfg = providerConfigs[pi]; cfg && cfg->m_container.at(i).hasValue()) {
                     dst.copyValueFrom(cfg->m_container.at(i));
@@ -85,26 +111,22 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
                     break;
                 }
             }
-
-            if (!source.empty()) {
-                LOG_I("  {:<{}} = {}  [{:<{}}]", dst.name(), maxParamLen, dst.valueToString(), source, maxSourceLen);
-            }
+            if (!source.empty()) paramLogs.push_back({dst.name(), dst.valueToString(), source});
         }
 
-        auto current = this->getConfig();
-        if (!current || !current->m_container.equals(resolved->m_container)) {
-            LOG_I("Config changed — publishing update.");
-            this->setConfig(std::move(resolved));
-        } else {
-            LOG_I("Config unchanged — no update published.");
-        }
+        auto current = ConfigPublisher<Config>::getConfig();
+        const bool changed = !current || !current->m_container.equals(resolved->m_container);
+        if (changed) setConfig(resolved);
+
+        LOG_I("Resolving config [{} provider(s)]:", kTotalProviders);
+        for (auto& [name, value, source] : paramLogs)
+            LOG_I("  {:<{}} = {}  [{:<{}}]", name, maxParamLen, value, source, maxSourceLen);
+        LOG_I("{}", changed ? "Config changed — publishing update." : "Config unchanged — no update published.");
     }
-
-   protected:
-    virtual void beforeLogging(const Config&) {}
 
    private:
     std::tuple<std::unique_ptr<Providers>..., std::unique_ptr<DefaultProvider>> m_providers;
+    ConfigPublisher<Logging::LoggerConfig> m_loggerConfigPublisher;
     Utils::Logging::Logger m_logger{"ConfigManager"};
 };
 

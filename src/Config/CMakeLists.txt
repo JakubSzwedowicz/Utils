@@ -9,7 +9,6 @@ target_sources(Config
         FILES
             ConfigPublisher.h
             ConfigManager.h
-            ConfigManagerWithLogger.h
             ConfigParameters/ConfigParameter.h
             ConfigParameters/ConfigParametersContainer.h
             Providers/IConfigProvider.h

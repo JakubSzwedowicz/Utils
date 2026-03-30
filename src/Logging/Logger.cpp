@@ -29,7 +29,7 @@ constexpr spdlog::level::level_enum logLevelToSpdlogImpl(LogLevel level) {
 
 consteval spdlog::level::level_enum logLevelToSpdlog(LogLevel level) { return logLevelToSpdlogImpl(level); }
 
-Logger::Logger(std::string name, std::shared_ptr<LoggerConfig> config)
+Logger::Logger(std::string name, std::shared_ptr<const LoggerConfig> config)
     : m_name(std::move(name)),
       m_config(config ? config : std::make_shared<LoggerConfig>()),
       m_logger(buildLogger(m_name, m_config)) {
@@ -43,7 +43,7 @@ Logger& Logger::getInstance() {
 
 const std::string& Logger::getName() const { return m_name; }
 
-void Logger::onUpdate(const std::shared_ptr<LoggerConfig>& newConfig) {
+void Logger::onUpdate(const std::shared_ptr<const LoggerConfig>& newConfig) {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_config = newConfig;
     updateLoggerLevel();
@@ -76,7 +76,7 @@ void Logger::updateLoggerLevel() {
 }
 
 std::shared_ptr<spdlog::logger> Logger::buildLogger(const std::string& name,
-                                                    const std::shared_ptr<LoggerConfig>& config) {
+                                                    const std::shared_ptr<const LoggerConfig>& config) {
     struct LifecycleManager {
         LifecycleManager() {
             std::atexit([]() { spdlog::shutdown(); });
