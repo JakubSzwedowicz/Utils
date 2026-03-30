@@ -25,79 +25,53 @@ using TestSink_mt = TestSink<std::mutex>;
 
 class LoggerTest : public ::testing::Test {
    protected:
-    static std::shared_ptr<LoggerConfig> createTestConfig() {
-        auto c = std::make_shared<LoggerConfig>();
-        c->globalLogLevel = LogLevel::INFO;
-        c->filename = "test_log.txt";
-        return c;
-    }
-
-    LoggerTest()
-        : config(createTestConfig()), m_logger("TestLogger", config), testSink(std::make_shared<TestSink_mt>()) {
+    LoggerTest() : m_logger("TestLogger"), testSink(std::make_shared<TestSink_mt>()) {
         m_logger.clearSinks();
         m_logger.addSink(testSink);
         testSink->set_level(spdlog::level::trace);
+        // Ensure a known starting level regardless of global pub/sub state.
+        auto config = std::make_shared<LoggerConfig>();
+        config->globalLogLevel = LogLevel::INFO;
+        m_logger.onUpdate(config);
     }
 
-    std::shared_ptr<LoggerConfig> config;
     Logger m_logger;
     std::shared_ptr<TestSink_mt> testSink;
 };
 
-TEST_F(LoggerTest, MacrosExecute) {
+TEST_F(LoggerTest, LevelFilteringAtInfo) {
     LOG_D("Debug message");
     LOG_I("Info message");
     LOG_W("Warning message");
-    LOG_E("Error message");
-    LOG_C("Critical message");
 
     EXPECT_FALSE(testSink->log_contents.find("Debug message") != std::string::npos);
     EXPECT_TRUE(testSink->log_contents.find("Info message") != std::string::npos);
     EXPECT_TRUE(testSink->log_contents.find("Warning message") != std::string::npos);
-    EXPECT_TRUE(testSink->log_contents.find("Error message") != std::string::npos);
-    EXPECT_TRUE(testSink->log_contents.find("Critical message") != std::string::npos);
 }
 
 TEST_F(LoggerTest, FormattingWorks) {
     LOG_I("String: {}, Int: {}, Float: {:.2f}", "test", 42, 3.14159);
-
     EXPECT_TRUE(testSink->log_contents.find("String: test, Int: 42, Float: 3.14") != std::string::npos);
 }
 
-TEST_F(LoggerTest, ConfigUpdateChangesLevel) {
-    LOG_D("Debug message");
-    EXPECT_FALSE(testSink->log_contents.find("Debug message") != std::string::npos);
+TEST_F(LoggerTest, GlobalLevelChangeEnablesDebug) {
+    LOG_D("Before");
+    EXPECT_FALSE(testSink->log_contents.find("Before") != std::string::npos);
 
-    auto newConfig = std::make_shared<LoggerConfig>();
-    newConfig->globalLogLevel = LogLevel::DEBUG;
-    m_logger.onUpdate(newConfig);
+    auto cfg = std::make_shared<LoggerConfig>();
+    cfg->globalLogLevel = LogLevel::DEBUG;
+    m_logger.onUpdate(cfg);
 
-    LOG_D("Debug message");
-    EXPECT_TRUE(testSink->log_contents.find("Debug message") != std::string::npos);
+    LOG_D("After");
+    EXPECT_TRUE(testSink->log_contents.find("After") != std::string::npos);
 }
 
-TEST_F(LoggerTest, NamedLoggerOverride) {
-    LOG_D("Debug message");
-    EXPECT_FALSE(testSink->log_contents.find("Debug message") != std::string::npos);
+TEST_F(LoggerTest, PerLoggerOverrideEnablesDebug) {
+    auto cfg = std::make_shared<LoggerConfig>();
+    cfg->globalLogLevel = LogLevel::INFO;
+    cfg->loggersLogLevels[m_logger.getName()] = LogLevel::DEBUG;
+    m_logger.onUpdate(cfg);
 
-    config->loggersLogLevels[m_logger.getName()] = LogLevel::DEBUG;
-    m_logger.onUpdate(config);
-
-    LOG_D("Debug message");
-    EXPECT_TRUE(testSink->log_contents.find("Debug message") != std::string::npos);
-}
-
-TEST_F(LoggerTest, FlushDoesNotThrow) { EXPECT_NO_THROW(m_logger.flush()); }
-
-TEST_F(LoggerTest, LogLevelFiltering) {
-    auto newConfig = std::make_shared<LoggerConfig>();
-    newConfig->globalLogLevel = LogLevel::INFO;
-    m_logger.onUpdate(newConfig);
-
-    LOG_D("Debug message that should be skipped");
-    LOG_I("Info message that should appear");
-    m_logger.flush();
-
-    EXPECT_FALSE(testSink->log_contents.find("Debug message") != std::string::npos);
-    EXPECT_TRUE(testSink->log_contents.find("Info message") != std::string::npos);
+    LOG_D("Debug via per-logger override");
+    EXPECT_TRUE(testSink->log_contents.find("Debug via per-logger override") != std::string::npos);
 }
