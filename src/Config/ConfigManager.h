@@ -101,13 +101,16 @@ class ConfigManager : public ConfigPublisher<Config>,
             if (!source.empty()) paramLogs.push_back({dst.name(), dst.valueToString(), source});
         }
 
+        size_t maxValueLen = 0;
+        for (auto& [name, value, source] : paramLogs) maxValueLen = std::max(maxValueLen, value.size());
+
         auto current = ConfigPublisher<Config>::getConfig();
         const bool changed = !current || !current->m_container.equals(resolved->m_container);
         if (changed) setConfig(resolved);
 
         LOG_I("Resolving config [{} provider(s)]:", kTotalProviders);
         for (auto& [name, value, source] : paramLogs)
-            LOG_I("  {:<{}} = {}  [{:<{}}]", name, maxParamLen, value, source, maxSourceLen);
+            LOG_I("  {:<{}} = {:<{}}  [{:<{}}]", name, maxParamLen, value, maxValueLen, source, maxSourceLen);
         LOG_I("{}", changed ? "Config changed — publishing update." : "Config unchanged — no update published.");
     }
 

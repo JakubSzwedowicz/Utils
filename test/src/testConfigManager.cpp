@@ -1,9 +1,14 @@
 #include <gtest/gtest.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/sinks/base_sink.h>
 
 #include <memory>
+#include <mutex>
 #include <string>
+#include <vector>
 
 #include "Config/ConfigManager.h"
+#include "Logging/Logger.h"
 #include "Logging/LoggerConfig.h"
 #include "Mocks.h"
 #include "PublishSubscribe/IPublisherSubscriber.h"
@@ -226,4 +231,62 @@ TEST_F(testConfigManagerLogger, ConfigWithNoLoggerConfigDoesNotPublishLoggerConf
     manager.run();
 
     EXPECT_EQ(m_sub->count, 0);
+}
+
+// ── Resolve log column alignment test ────────────────────────────────────────
+
+template <typename Mutex>
+class CapturingSink : public spdlog::sinks::base_sink<Mutex> {
+   public:
+    std::vector<std::string> lines;
+
+   protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override {
+        spdlog::memory_buf_t buf;
+        this->formatter_->format(msg, buf);
+        std::string s = fmt::to_string(buf);
+        if (!s.empty() && s.back() == '\n') s.pop_back();
+        lines.push_back(std::move(s));
+    }
+    void flush_() override {}
+};
+using CapturingSink_mt = CapturingSink<std::mutex>;
+
+TEST(testConfigManagerResolveLog, ValueColumnIsAligned) {
+    // Use two providers so params come from different sources (different source-name lengths).
+    ConfigManager<TestConfig, MockProvider1, MockProvider2> manager{std::make_unique<MockProvider1>(),
+                                                                    std::make_unique<MockProvider2>()};
+
+    auto sink = std::make_shared<CapturingSink_mt>();
+    Logger::find("ConfigManager")->addSink(sink);
+
+    // Give params different value lengths: short int vs long string vs bool.
+    auto p1 = std::make_shared<TestConfig>();
+    p1->name.set("a_very_long_name_value");
+    p1->value.set(1);
+
+    auto p2 = std::make_shared<TestConfig>();
+    p2->rate.set(3.14);
+    p2->enabled.set(true);
+
+    manager.getProvider<MockProvider1>().update(p1);
+    manager.getProvider<MockProvider2>().update(p2);
+    manager.run();
+
+    // Collect all param lines (they contain " = ").
+    std::vector<std::string> paramLines;
+    for (const auto& line : sink->lines)
+        if (line.find(" = ") != std::string::npos) paramLines.push_back(line);
+
+    ASSERT_GE(paramLines.size(), 2u);
+
+    // The source bracket "  [" must start at the same column in every param line.
+    auto bracketCol = [](const std::string& line) -> size_t {
+        // Find the last "  [" sequence (the source column).
+        auto pos = line.rfind("  [");
+        return pos == std::string::npos ? 0 : pos;
+    };
+
+    size_t expected = bracketCol(paramLines.front());
+    for (const auto& line : paramLines) EXPECT_EQ(bracketCol(line), expected) << "misaligned line: " << line;
 }

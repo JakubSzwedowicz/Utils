@@ -8,6 +8,9 @@
 
 namespace Utils::Logging {
 
+std::unordered_map<std::string, Logger*> Logger::s_registry;
+std::mutex Logger::s_registryMutex;
+
 constexpr spdlog::level::level_enum logLevelToSpdlogImpl(LogLevel level) {
     switch (level) {
         case LogLevel::DEBUG:
@@ -34,11 +37,24 @@ Logger::Logger(std::string name, std::shared_ptr<const LoggerConfig> config)
       m_config(config ? config : std::make_shared<LoggerConfig>()),
       m_logger(buildLogger(m_name, m_config)) {
     updateLoggerLevel();
+    std::lock_guard lock(s_registryMutex);
+    s_registry[m_name] = this;
+}
+
+Logger::~Logger() {
+    std::lock_guard lock(s_registryMutex);
+    s_registry.erase(m_name);
 }
 
 Logger& Logger::getInstance() {
     static Logger instance("Root");
     return instance;
+}
+
+Logger* Logger::find(const std::string& name) {
+    std::lock_guard lock(s_registryMutex);
+    auto it = s_registry.find(name);
+    return it != s_registry.end() ? it->second : nullptr;
 }
 
 const std::string& Logger::getName() const { return m_name; }

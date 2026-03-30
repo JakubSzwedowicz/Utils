@@ -4,6 +4,7 @@
 #include <mutex>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include "LoggerConfig.h"
 #include "PublishSubscribe/IPublisherSubscriber.h"
@@ -20,8 +21,10 @@ namespace Utils::Logging {
 class Logger : public PublishSubscribe::ISubscriber<std::shared_ptr<const LoggerConfig>> {
    public:
     explicit Logger(std::string name, std::shared_ptr<const LoggerConfig> config = nullptr);
+    ~Logger() override;
 
     static Logger& getInstance();
+    static Logger* find(const std::string& name);
 
     const std::string& getName() const;
 
@@ -41,6 +44,9 @@ class Logger : public PublishSubscribe::ISubscriber<std::shared_ptr<const Logger
 
     static std::shared_ptr<spdlog::logger> buildLogger(const std::string& name,
                                                        const std::shared_ptr<const LoggerConfig>& config);
+
+    static std::unordered_map<std::string, Logger*> s_registry;
+    static std::mutex s_registryMutex;
 
    private:
     std::string m_name;
