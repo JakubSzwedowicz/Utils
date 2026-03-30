@@ -65,15 +65,12 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
             if (config) {
                 auto lc = std::make_shared<Logging::LoggerConfig>(config->loggerConfig.get());
                 auto current = m_loggerConfigPublisher.getConfig();
-                if (!current || *current != *lc)
-                    m_loggerConfigPublisher.setConfig(lc);
+                if (!current || *current != *lc) m_loggerConfigPublisher.setConfig(lc);
             }
         }
     }
 
-    std::shared_ptr<const Logging::LoggerConfig> getLoggerConfig() const {
-        return m_loggerConfigPublisher.getConfig();
-    }
+    std::shared_ptr<const Logging::LoggerConfig> getLoggerConfig() const { return m_loggerConfigPublisher.getConfig(); }
 
     void addLogSink(std::shared_ptr<spdlog::sinks::sink> sink) { m_logger.addSink(sink); }
 

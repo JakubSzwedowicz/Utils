@@ -33,8 +33,7 @@ using CapturingSink_mt = CapturingSink<std::mutex>;
 
 // ── Subscriber helpers ────────────────────────────────────────────────────────
 
-class LoggerConfigSubscriber
-    : public Utils::PublishSubscribe::ISubscriber<std::shared_ptr<const LoggerConfig>> {
+class LoggerConfigSubscriber : public Utils::PublishSubscribe::ISubscriber<std::shared_ptr<const LoggerConfig>> {
    public:
     void onUpdate(const std::shared_ptr<const LoggerConfig>& config) override {
         last = config;
@@ -54,7 +53,10 @@ class MockNestedProvider : public Utils::Config::Providers::IConfigProvider<Nest
     }
     void run() override {}
     std::optional<std::shared_ptr<NestedTestConfig>> poll() override {
-        if (m_hasNew) { m_hasNew = false; return m_config; }
+        if (m_hasNew) {
+            m_hasNew = false;
+            return m_config;
+        }
         return std::nullopt;
     }
     std::shared_ptr<const NestedTestConfig> getConfig() const override { return m_config; }
@@ -70,8 +72,7 @@ class MockNestedProvider : public Utils::Config::Providers::IConfigProvider<Nest
 class testConfigManager : public ::testing::Test {
    protected:
     void TearDown() override {
-        auto* mgr =
-            Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager();
+        auto* mgr = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager();
         if (subscriber) mgr->removeSubscriber(subscriber.get());
     }
     std::shared_ptr<MockConfigSubscriber> subscriber;
@@ -133,8 +134,8 @@ TEST_F(testConfigManager, SecondProviderFillsWhatFirstDoesNotSet) {
 TEST_F(testConfigManager, PublishesOnConfigChange) {
     ConfigManager<TestConfig, MockProvider1> manager;
     subscriber = std::make_shared<MockConfigSubscriber>();
-    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager()
-        ->addSubscriber(subscriber.get());
+    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager()->addSubscriber(
+        subscriber.get());
     int countBefore = subscriber->updateCount;
 
     manager.update<MockProvider1>(createTestConfig("changed", 999));
@@ -147,8 +148,8 @@ TEST_F(testConfigManager, PublishesOnConfigChange) {
 TEST_F(testConfigManager, DoesNotPublishWhenConfigUnchanged) {
     ConfigManager<TestConfig, MockProvider1> manager;
     subscriber = std::make_shared<MockConfigSubscriber>();
-    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager()
-        ->addSubscriber(subscriber.get());
+    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const TestConfig>>::getManager()->addSubscriber(
+        subscriber.get());
 
     manager.update<MockProvider1>(createTestConfig("same", 1));
     int countAfterFirst = subscriber->updateCount;
@@ -162,8 +163,7 @@ TEST_F(testConfigManager, DoesNotPublishWhenConfigUnchanged) {
 class testConfigManagerLogger : public ::testing::Test {
    protected:
     void TearDown() override {
-        auto* mgr =
-            Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager();
+        auto* mgr = Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager();
         if (m_sub) mgr->removeSubscriber(m_sub.get());
     }
     std::shared_ptr<LoggerConfigSubscriber> m_sub;
@@ -195,8 +195,8 @@ TEST_F(testConfigManagerLogger, LoggerConfigUpdatesWithProvider) {
 TEST_F(testConfigManagerLogger, LoggerConfigNotRepublishedWhenUnchanged) {
     ConfigManager<NestedTestConfig, MockNestedProvider> manager;
     m_sub = std::make_shared<LoggerConfigSubscriber>();
-    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager()
-        ->addSubscriber(m_sub.get());
+    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager()->addSubscriber(
+        m_sub.get());
     int countAfterConstruction = m_sub->count;
 
     auto cfg = std::make_shared<NestedTestConfig>();
@@ -209,8 +209,8 @@ TEST_F(testConfigManagerLogger, LoggerConfigNotRepublishedWhenUnchanged) {
 TEST_F(testConfigManagerLogger, LoggerConfigRepublishedOnChange) {
     ConfigManager<NestedTestConfig, MockNestedProvider> manager;
     m_sub = std::make_shared<LoggerConfigSubscriber>();
-    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager()
-        ->addSubscriber(m_sub.get());
+    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager()->addSubscriber(
+        m_sub.get());
     int countAfterConstruction = m_sub->count;
 
     LoggerConfig changed;
@@ -227,8 +227,8 @@ TEST_F(testConfigManagerLogger, LoggerConfigRepublishedOnChange) {
 TEST_F(testConfigManagerLogger, ConfigWithNoLoggerConfigDoesNotPublishLoggerConfig) {
     // TestConfig has no loggerConfig — the LoggerConfig pub/sub channel must stay silent.
     m_sub = std::make_shared<LoggerConfigSubscriber>();
-    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager()
-        ->addSubscriber(m_sub.get());
+    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager()->addSubscriber(
+        m_sub.get());
 
     ConfigManager<TestConfig, MockProvider1> manager;
     manager.update<MockProvider1>(createTestConfig("x", 1));
