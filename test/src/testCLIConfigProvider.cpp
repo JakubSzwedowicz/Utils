@@ -4,10 +4,10 @@
 #include <vector>
 
 #include "Config/ConfigManager.h"
-#include "Config/Providers/CLIConfigProvider.h"
+#include "Config/ConfigProviders/CLIConfigProvider.h"
 #include "Mocks.h"
 
-using namespace Utils::Config::Providers;
+using namespace Utils::Config::ConfigProviders;
 using Utils::Config::ConfigManager;
 
 // Builds a fake argc/argv from a list of string literals.
@@ -27,14 +27,9 @@ struct FakeArgv {
 
 // ── Provider in isolation ────────────────────────────────────────────────────
 
-class testCLIConfigProvider : public ::testing::Test {
-   protected:
-    CLIConfigProvider<TestConfig> provider;
-};
-
-TEST_F(testCLIConfigProvider, ParsesEqualsFormat) {
+TEST(testCLIConfigProvider, ParsesEqualsFormat) {
     FakeArgv args{"prog", "--name=hello", "--value=42", "--rate=1.5", "--enabled=true"};
-    provider.update(args.argc(), args.argv());
+    CLIConfigProvider<TestConfig> provider{args.argc(), args.argv()};
 
     auto cfg = provider.getConfig();
     ASSERT_NE(cfg, nullptr);
@@ -48,9 +43,9 @@ TEST_F(testCLIConfigProvider, ParsesEqualsFormat) {
     EXPECT_TRUE(cfg->enabled.get());
 }
 
-TEST_F(testCLIConfigProvider, ParsesSpaceSeparatedFormat) {
+TEST(testCLIConfigProvider, ParsesSpaceSeparatedFormat) {
     FakeArgv args{"prog", "--name", "world", "--value", "7"};
-    provider.update(args.argc(), args.argv());
+    CLIConfigProvider<TestConfig> provider{args.argc(), args.argv()};
 
     auto cfg = provider.getConfig();
     ASSERT_TRUE(cfg->name.hasValue());
@@ -59,38 +54,36 @@ TEST_F(testCLIConfigProvider, ParsesSpaceSeparatedFormat) {
     EXPECT_EQ(cfg->value.get(), 7);
 }
 
-TEST_F(testCLIConfigProvider, BoolFlagWithNoValueIsTrue) {
+TEST(testCLIConfigProvider, BoolFlagWithNoValueIsTrue) {
     FakeArgv args{"prog", "--enabled"};
-    provider.update(args.argc(), args.argv());
+    CLIConfigProvider<TestConfig> provider{args.argc(), args.argv()};
 
     auto cfg = provider.getConfig();
     ASSERT_TRUE(cfg->enabled.hasValue());
     EXPECT_TRUE(cfg->enabled.get());
 }
 
-TEST_F(testCLIConfigProvider, ExplicitFalseFlag) {
+TEST(testCLIConfigProvider, ExplicitFalseFlag) {
     FakeArgv args{"prog", "--enabled=false"};
-    provider.update(args.argc(), args.argv());
+    CLIConfigProvider<TestConfig> provider{args.argc(), args.argv()};
 
     auto cfg = provider.getConfig();
     ASSERT_TRUE(cfg->enabled.hasValue());
     EXPECT_FALSE(cfg->enabled.get());
 }
 
-TEST_F(testCLIConfigProvider, HyphenNormalisedToUnderscore) {
-    // Slot name is "name"; CLI arg uses the equivalent hyphenated spelling.
-    // (TestConfig only has single-word names; this verifies the normalisation path.)
+TEST(testCLIConfigProvider, HyphenNormalisedToUnderscore) {
     FakeArgv args{"prog", "--name=hyphen-test"};
-    provider.update(args.argc(), args.argv());
+    CLIConfigProvider<TestConfig> provider{args.argc(), args.argv()};
 
     auto cfg = provider.getConfig();
     ASSERT_TRUE(cfg->name.hasValue());
-    EXPECT_EQ(cfg->name.get(), "hyphen-test");  // value is preserved; name matched
+    EXPECT_EQ(cfg->name.get(), "hyphen-test");
 }
 
-TEST_F(testCLIConfigProvider, UnknownArgsAreIgnored) {
+TEST(testCLIConfigProvider, UnknownArgsAreIgnored) {
     FakeArgv args{"prog", "--unknown=xyz", "--name=known"};
-    provider.update(args.argc(), args.argv());
+    CLIConfigProvider<TestConfig> provider{args.argc(), args.argv()};
 
     auto cfg = provider.getConfig();
     ASSERT_TRUE(cfg->name.hasValue());
@@ -98,9 +91,9 @@ TEST_F(testCLIConfigProvider, UnknownArgsAreIgnored) {
     EXPECT_FALSE(cfg->value.hasValue());
 }
 
-TEST_F(testCLIConfigProvider, UnparsedParamsHaveNoValue) {
+TEST(testCLIConfigProvider, UnparsedParamsHaveNoValue) {
     FakeArgv args{"prog", "--name=only"};
-    provider.update(args.argc(), args.argv());
+    CLIConfigProvider<TestConfig> provider{args.argc(), args.argv()};
 
     auto cfg = provider.getConfig();
     ASSERT_TRUE(cfg->name.hasValue());
@@ -109,37 +102,32 @@ TEST_F(testCLIConfigProvider, UnparsedParamsHaveNoValue) {
     EXPECT_FALSE(cfg->enabled.hasValue());
 }
 
-TEST_F(testCLIConfigProvider, NameIsCorrect) { EXPECT_EQ(provider.name(), "CLIConfigProvider"); }
+TEST(testCLIConfigProvider, NameIsCorrect) {
+    FakeArgv args{"prog"};
+    CLIConfigProvider<TestConfig> provider{args.argc(), args.argv()};
+    EXPECT_EQ(provider.name(), "CLIConfigProvider");
+}
 
 // ── Inside ConfigManager ─────────────────────────────────────────────────────
 
 TEST(testCLIConfigProviderInManager, CLIOverridesDefault) {
-    ConfigManager<TestConfig, CLIConfigProvider<TestConfig>> manager;
-
     FakeArgv args{"prog", "--name=from_cli", "--value=99"};
-    manager.update<CLIConfigProvider<TestConfig>>(args.argc(), args.argv());
+    ConfigManager<TestConfig, CLIConfigProvider<TestConfig>> manager{
+        std::make_unique<CLIConfigProvider<TestConfig>>(args.argc(), args.argv())};
 
     auto cfg = manager.getConfig();
     ASSERT_NE(cfg, nullptr);
     EXPECT_EQ(cfg->name.get(), "from_cli");
     EXPECT_EQ(cfg->value.get(), 99);
-    // Params not on the CLI fall back to DefaultConfigProvider
     EXPECT_EQ(cfg->rate.get(), 0.0);
     EXPECT_FALSE(cfg->enabled.get());
 }
 
 // ── Tests for NestedConfig & LoggerConfig ────────────────────────────────────
 
-class testCLIConfigProviderNested : public ::testing::Test {
-   protected:
-    CLIConfigProvider<NestedTestConfig> provider;
-};
-
-// We want to verify that someone can provide a JSON string or appropriate CLI arg
-// to instantiate a full LoggerConfig in the ConfigParameter.
-TEST_F(testCLIConfigProviderNested, ParsesNestedLoggerConfig) {
+TEST(testCLIConfigProviderNested, ParsesNestedLoggerConfig) {
     FakeArgv args{"prog", "--port=9090", "--loggerConfig={\"filename\":\"cli_test.log\",\"globalLogLevel\":2}"};
-    provider.update(args.argc(), args.argv());
+    CLIConfigProvider<NestedTestConfig> provider{args.argc(), args.argv()};
 
     auto cfg = provider.getConfig();
     ASSERT_NE(cfg, nullptr);

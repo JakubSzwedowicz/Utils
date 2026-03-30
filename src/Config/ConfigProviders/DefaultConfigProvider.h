@@ -8,9 +8,9 @@
 #include <optional>
 #include <string_view>
 
-#include "Providers/IConfigProvider.h"
+#include "ConfigProviders/IConfigProvider.h"
 
-namespace Utils::Config::Providers {
+namespace Utils::Config::ConfigProviders {
 
 template <typename Config>
 class DefaultConfigProvider : public IConfigProvider<Config> {
@@ -26,4 +26,4 @@ class DefaultConfigProvider : public IConfigProvider<Config> {
     std::shared_ptr<Config> m_config;
 };
 
-}  // namespace Utils::Config::Providers
+}  // namespace Utils::Config::ConfigProviders

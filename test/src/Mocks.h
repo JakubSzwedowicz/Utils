@@ -9,7 +9,7 @@
 
 #include "Config/ConfigParameters/ConfigParameter.h"
 #include "Config/ConfigParameters/ConfigParametersContainer.h"
-#include "Config/Providers/IConfigProvider.h"
+#include "Config/ConfigProviders/IConfigProvider.h"
 #include "Logging/LoggerConfig.h"
 #include "Providers/ISourceProvider.h"
 #include "PublishSubscribe/IPublisherSubscriber.h"
@@ -99,7 +99,7 @@ class MockConfigSubscriber : public Utils::PublishSubscribe::ISubscriber<std::sh
 
 // ── Mock config providers for ConfigManager tests ────────────────────────────
 
-class MockProvider1 : public Utils::Config::Providers::IConfigProvider<TestConfig> {
+class MockProvider1 : public Utils::Config::ConfigProviders::IConfigProvider<TestConfig> {
    public:
     void update(std::shared_ptr<TestConfig> config) {
         m_config = std::move(config);
@@ -124,7 +124,7 @@ class MockProvider1 : public Utils::Config::Providers::IConfigProvider<TestConfi
     bool m_hasNew{false};
 };
 
-class MockProvider2 : public Utils::Config::Providers::IConfigProvider<TestConfig> {
+class MockProvider2 : public Utils::Config::ConfigProviders::IConfigProvider<TestConfig> {
    public:
     void update(std::shared_ptr<TestConfig> config) {
         m_config = std::move(config);

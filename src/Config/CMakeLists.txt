@@ -11,10 +11,10 @@ target_sources(Config
             ConfigManager.h
             ConfigParameters/ConfigParameter.h
             ConfigParameters/ConfigParametersContainer.h
-            Providers/IConfigProvider.h
-            Providers/DefaultConfigProvider.h
-            Providers/CLIConfigProvider.h
-            Providers/JsonConfigProvider.h
+            ConfigProviders/IConfigProvider.h
+            ConfigProviders/DefaultConfigProvider.h
+            ConfigProviders/CLIConfigProvider.h
+            ConfigProviders/JsonConfigProvider.h
 )
 
 target_include_directories(Config

@@ -10,11 +10,11 @@
 #include <tuple>
 #include <vector>
 
+#include "ConfigProviders/DefaultConfigProvider.h"
 #include "ConfigPublisher.h"
 #include "Logging/Logger.h"
 #include "Logging/LoggerConfig.h"
 #include "Logging/LoggerMacros.h"
-#include "Providers/DefaultConfigProvider.h"
 #include "Runnables/IRunnable.h"
 
 namespace Utils::Config {
@@ -23,20 +23,17 @@ template <typename T>
 concept HasLoggerConfig = requires(const T& t) { t.loggerConfig.get(); };
 
 template <typename Config, typename... Providers>
-class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnable {
-    using DefaultProvider = Utils::Config::Providers::DefaultConfigProvider<Config>;
+class ConfigManager : public ConfigPublisher<Config>,
+                      public ConfigPublisher<Logging::LoggerConfig>,
+                      public Runnables::IRunnable {
+    using DefaultProvider = Utils::Config::ConfigProviders::DefaultConfigProvider<Config>;
     static constexpr size_t kTotalProviders = sizeof...(Providers) + 1;
 
    public:
-    ConfigManager()
-        requires(std::default_initializable<Providers> && ...)
-        : m_providers(std::make_unique<Providers>()..., std::make_unique<DefaultProvider>()) {
-        resolve();
-    }
+    using ConfigPublisher<Config>::getConfig;
+    using ConfigPublisher<Logging::LoggerConfig>::setConfig;
 
-    // Only available when pack is non-empty to avoid ambiguity with the default constructor.
     explicit ConfigManager(std::unique_ptr<Providers>... providers)
-        requires(sizeof...(Providers) > 0)
         : m_providers(std::move(providers)..., std::make_unique<DefaultProvider>()) {
         resolve();
     }
@@ -44,13 +41,6 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
     template <typename T>
     T& getProvider() {
         return *std::get<std::unique_ptr<T>>(m_providers);
-    }
-
-    template <typename T, typename... Args>
-    void update(Args&&... args) {
-        getProvider<T>().update(std::forward<Args>(args)...);
-        resolve();
-        getProvider<T>().poll();  // drain so run() doesn't re-resolve redundantly
     }
 
     void run() override {
@@ -64,15 +54,15 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
         if constexpr (HasLoggerConfig<Config>) {
             if (config) {
                 auto lc = std::make_shared<Logging::LoggerConfig>(config->loggerConfig.get());
-                auto current = m_loggerConfigPublisher.getConfig();
-                if (!current || *current != *lc) m_loggerConfigPublisher.setConfig(lc);
+                auto current = ConfigPublisher<Logging::LoggerConfig>::getConfig();
+                if (!current || *current != *lc) ConfigPublisher<Logging::LoggerConfig>::setConfig(lc);
             }
         }
     }
 
-    std::shared_ptr<const Logging::LoggerConfig> getLoggerConfig() const { return m_loggerConfigPublisher.getConfig(); }
-
-    void addLogSink(std::shared_ptr<spdlog::sinks::sink> sink) { m_logger.addSink(sink); }
+    std::shared_ptr<const Logging::LoggerConfig> getLoggerConfig() const {
+        return ConfigPublisher<Logging::LoggerConfig>::getConfig();
+    }
 
     void resolve() {
         auto resolved = std::make_shared<Config>();
@@ -123,7 +113,6 @@ class ConfigManager : public ConfigPublisher<Config>, public Runnables::IRunnabl
 
    private:
     std::tuple<std::unique_ptr<Providers>..., std::unique_ptr<DefaultProvider>> m_providers;
-    ConfigPublisher<Logging::LoggerConfig> m_loggerConfigPublisher;
     Utils::Logging::Logger m_logger{"ConfigManager"};
 };
 

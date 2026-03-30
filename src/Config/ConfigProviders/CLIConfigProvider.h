@@ -9,27 +9,17 @@
 #include <string_view>
 
 #include "ConfigParser/CLIConfigParser.h"
-#include "Providers/IConfigProvider.h"
+#include "ConfigProviders/IConfigProvider.h"
 
-namespace Utils::Config::Providers {
+namespace Utils::Config::ConfigProviders {
 
 template <typename Config>
 class CLIConfigProvider : public IConfigProvider<Config> {
    public:
-    void update(int argc, char** argv) {
-        m_config = m_parser.parse({argc, argv});
-        m_hasNew = true;
-    }
+    CLIConfigProvider(int argc, char** argv) : m_config(m_parser.parse({argc, argv})) {}
 
     void run() override {}
-
-    std::optional<std::shared_ptr<Config>> poll() override {
-        if (m_hasNew) {
-            m_hasNew = false;
-            return m_config;
-        }
-        return std::nullopt;
-    }
+    std::optional<std::shared_ptr<Config>> poll() override { return std::nullopt; }
 
     std::shared_ptr<const Config> getConfig() const override { return m_config; }
     std::string_view name() const override { return "CLIConfigProvider"; }
@@ -37,7 +27,6 @@ class CLIConfigProvider : public IConfigProvider<Config> {
    private:
     ConfigParser::CLIConfigParser<Config> m_parser;
     std::shared_ptr<Config> m_config;
-    bool m_hasNew{false};
 };
 
-}  // namespace Utils::Config::Providers
+}  // namespace Utils::Config::ConfigProviders
