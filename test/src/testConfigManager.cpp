@@ -227,4 +227,3 @@ TEST_F(testConfigManagerLogger, ConfigWithNoLoggerConfigDoesNotPublishLoggerConf
 
     EXPECT_EQ(m_sub->count, 0);
 }
-

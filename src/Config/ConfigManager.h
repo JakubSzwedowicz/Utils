@@ -10,11 +10,11 @@
 #include <tuple>
 #include <vector>
 
+#include "ConfigProviders/DefaultConfigProvider.h"
 #include "ConfigPublisher.h"
 #include "Logging/Logger.h"
 #include "Logging/LoggerConfig.h"
 #include "Logging/LoggerMacros.h"
-#include "ConfigProviders/DefaultConfigProvider.h"
 #include "Runnables/IRunnable.h"
 
 namespace Utils::Config {
