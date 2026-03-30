@@ -41,6 +41,7 @@ class Logger : public PublishSubscribe::ISubscriber<std::shared_ptr<const Logger
 
    private:
     void updateLoggerLevel();
+    void rebuildLogger();
 
     static std::shared_ptr<spdlog::logger> buildLogger(const std::string& name,
                                                        const std::shared_ptr<const LoggerConfig>& config);
@@ -53,7 +54,7 @@ class Logger : public PublishSubscribe::ISubscriber<std::shared_ptr<const Logger
     mutable std::mutex m_mutex;
     std::shared_ptr<const LoggerConfig> m_config = std::make_shared<LoggerConfig>();
 
-    const std::shared_ptr<spdlog::logger> m_logger;
+    std::shared_ptr<spdlog::logger> m_logger;
 };
 
 }  // namespace Utils::Logging
