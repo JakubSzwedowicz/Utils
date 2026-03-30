@@ -4,10 +4,10 @@
 #include <string>
 
 #include "Config/ConfigManager.h"
-#include "Config/Providers/JsonConfigProvider.h"
+#include "Config/ConfigProviders/JsonConfigProvider.h"
 #include "Mocks.h"
 
-using namespace Utils::Config::Providers;
+using namespace Utils::Config::ConfigProviders;
 using Utils::Config::ConfigManager;
 
 // ── JsonConfigProvider<TestConfig> ───────────────────────────────────────────

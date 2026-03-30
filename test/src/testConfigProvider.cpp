@@ -4,11 +4,11 @@
 
 #include "Config/ConfigParameters/ConfigParameter.h"
 #include "Config/ConfigParameters/ConfigParametersContainer.h"
-#include "Config/Providers/DefaultConfigProvider.h"
+#include "Config/ConfigProviders/DefaultConfigProvider.h"
 #include "Mocks.h"
 
 using namespace Utils::Config::ConfigParameters;
-using Utils::Config::Providers::DefaultConfigProvider;
+using Utils::Config::ConfigProviders::DefaultConfigProvider;
 
 // ── ConfigParameter ──────────────────────────────────────────────────────────
 

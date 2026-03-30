@@ -11,11 +11,11 @@
 #include <utility>
 
 #include "ConfigParser/JsonConfigParser.h"
-#include "Providers/IConfigProvider.h"
+#include "ConfigProviders/IConfigProvider.h"
 #include "Providers/ISourceProvider.h"
 #include "Providers/ResourceProvider.h"
 
-namespace Utils::Config::Providers {
+namespace Utils::Config::ConfigProviders {
 
 template <typename Config>
 class JsonConfigProvider : public IConfigProvider<Config> {
@@ -48,4 +48,4 @@ class JsonConfigProvider : public IConfigProvider<Config> {
     bool m_hasNew{false};
 };
 
-}  // namespace Utils::Config::Providers
+}  // namespace Utils::Config::ConfigProviders
