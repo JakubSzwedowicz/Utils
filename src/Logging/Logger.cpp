@@ -45,13 +45,20 @@ std::mutex Logger::s_registryMutex;
 
 constexpr spdlog::level::level_enum logLevelToSpdlogImpl(LogLevel level) {
     switch (level) {
-        case LogLevel::DEBUG:    return spdlog::level::debug;
-        case LogLevel::INFO:     return spdlog::level::info;
-        case LogLevel::WARNING:  return spdlog::level::warn;
-        case LogLevel::ERROR:    return spdlog::level::err;
-        case LogLevel::CRITICAL: return spdlog::level::critical;
-        case LogLevel::OFF:      return spdlog::level::off;
-        default:                 return spdlog::level::info;
+        case LogLevel::DEBUG:
+            return spdlog::level::debug;
+        case LogLevel::INFO:
+            return spdlog::level::info;
+        case LogLevel::WARNING:
+            return spdlog::level::warn;
+        case LogLevel::ERROR:
+            return spdlog::level::err;
+        case LogLevel::CRITICAL:
+            return spdlog::level::critical;
+        case LogLevel::OFF:
+            return spdlog::level::off;
+        default:
+            return spdlog::level::info;
     }
 }
 
