@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <ostream>
 #include <string>
 #include <unordered_map>
 
@@ -23,15 +24,28 @@ struct LoggerConfig {
     }
 
     bool operator!=(const LoggerConfig& other) const { return !(*this == other); }
+
+    friend std::ostream& operator<<(std::ostream& os, const LoggerConfig& lc);
 };
+
+static inline std::string toString(const LoggerConfig& lc) {
+    std::string res = "{filename: " + lc.filename + ", globalLogLevel: " + Utils::Logging::toString(lc.globalLogLevel);
+    if (!lc.loggersLogLevels.empty()) {
+        res += ", loggersLogLevels: {";
+        bool first = true;
+        for (const auto& [name, lvl] : lc.loggersLogLevels) {
+            if (!first) res += ", ";
+            res += name + ": " + Utils::Logging::toString(lvl);
+            first = false;
+        }
+        res += "}";
+    }
+    return res + "}";
+}
+
+inline std::ostream& operator<<(std::ostream& os, const LoggerConfig& lc) {
+    os << toString(lc);
+    return os;
+}
 
 }  // namespace Utils::Logging
-
-namespace glz {
-template <>
-struct meta<Utils::Logging::LoggerConfig> {
-    using T = Utils::Logging::LoggerConfig;
-    static constexpr auto value = object("filename", &T::filename, "globalLogLevel", &T::globalLogLevel,
-                                         "loggersLogLevels", &T::loggersLogLevels);
-};
-}  // namespace glz
