@@ -53,11 +53,16 @@
   ],
   "buildPresets": [
     {
+      "name": "base-build",
+      "hidden": true,
+      "jobs": 0
+    },
+    {
       "name": "app-debug",
+      "inherits": "base-build",
       "displayName": "App Debug Build",
       "configurePreset": "debug",
       "configuration": "Debug",
-      "jobs": 8,
       "targets": [
         "App",
         "UtilsConfigTest"
@@ -65,10 +70,10 @@
     },
     {
       "name": "app-release",
+      "inherits": "base-build",
       "displayName": "App Release Build",
       "configurePreset": "release",
       "configuration": "Release",
-      "jobs": 8,
       "targets": [
         "App",
         "UtilsConfigTest"
