@@ -11,4 +11,3 @@ else
 fi
 
 git submodule update --init --recursive
-cmake --workflow --preset all-debug --fresh

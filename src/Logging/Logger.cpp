@@ -66,13 +66,12 @@ consteval spdlog::level::level_enum logLevelToSpdlog(LogLevel level) { return lo
 
 // ── Logger implementation ─────────────────────────────────────────────────────
 
-Logger::Logger(std::string name, std::shared_ptr<const LoggerConfig> config)
-    : m_name(std::move(name)),
-      m_config(config ? config : std::make_shared<LoggerConfig>()),
-      m_logger(buildLogger(m_name, m_config)) {
-    updateLoggerLevel();
-    std::lock_guard lock(s_registryMutex);
-    s_registry[m_name] = this;
+Logger::Logger(std::string name) : m_name(std::move(name)), m_logger(buildLogger(m_name, m_config)) {
+    {
+        std::lock_guard lock(s_registryMutex);
+        s_registry[m_name] = this;
+    }
+    pull();
 }
 
 Logger::~Logger() {

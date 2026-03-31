@@ -30,10 +30,6 @@ class LoggerTest : public ::testing::Test {
         m_logger.clearSinks();
         m_logger.addSink(testSink);
         testSink->set_level(spdlog::level::trace);
-        // Ensure a known starting level regardless of global pub/sub state.
-        auto config = std::make_shared<LoggerConfig>();
-        config->globalLogLevel = LogLevel::INFO;
-        m_logger.onUpdate(config);
     }
 
     Logger m_logger;
