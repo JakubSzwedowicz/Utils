@@ -20,7 +20,7 @@ namespace Utils::Logging {
 
 class Logger : public PublishSubscribe::ISubscriber<std::shared_ptr<const LoggerConfig>> {
    public:
-    explicit Logger(std::string name, std::shared_ptr<const LoggerConfig> config = nullptr);
+    explicit Logger(std::string name);
     ~Logger() override;
 
     static Logger& getInstance();
