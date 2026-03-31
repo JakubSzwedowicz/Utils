@@ -4,6 +4,7 @@
 
 #include "Logging/Logger.h"
 #include "Logging/LoggerMacros.h"
+#include "PublishSubscribe/IPublisherSubscriber.h"
 
 using namespace Utils::Logging;
 
@@ -64,6 +65,19 @@ TEST_F(LoggerTest, GlobalLevelChangeEnablesDebug) {
 
     LOG_D("After");
     EXPECT_TRUE(testSink->log_contents.find("After") != std::string::npos);
+}
+
+TEST_F(LoggerTest, ReceivesLogLevelUpdateViaPubSub) {
+    LOG_D("before publish");
+    EXPECT_FALSE(testSink->log_contents.find("before publish") != std::string::npos);
+
+    auto cfg = std::make_shared<LoggerConfig>();
+    cfg->globalLogLevel = LogLevel::DEBUG;
+    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager()->publishMessage(
+        cfg);
+
+    LOG_D("after publish");
+    EXPECT_TRUE(testSink->log_contents.find("after publish") != std::string::npos);
 }
 
 TEST_F(LoggerTest, PerLoggerOverrideEnablesDebug) {
