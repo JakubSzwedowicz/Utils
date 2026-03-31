@@ -141,6 +141,7 @@ void Logger::updateLoggerLevel() {
 
 void Logger::rebuildLogger() {
     std::lock_guard lock(m_mutex);
+    m_logger->flush();
     m_logger = buildLogger(m_name, m_config);
     // Inline level update to avoid re-acquiring m_mutex.
     LogLevel threshold = m_config->globalLogLevel;
