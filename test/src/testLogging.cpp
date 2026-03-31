@@ -73,8 +73,8 @@ TEST_F(LoggerTest, ReceivesLogLevelUpdateViaPubSub) {
 
     auto cfg = std::make_shared<LoggerConfig>();
     cfg->globalLogLevel = LogLevel::DEBUG;
-    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager()
-        ->publishMessage(cfg);
+    Utils::PublishSubscribe::PublishSubscribeManager<std::shared_ptr<const LoggerConfig>>::getManager()->publishMessage(
+        cfg);
 
     LOG_D("after publish");
     EXPECT_TRUE(testSink->log_contents.find("after publish") != std::string::npos);
