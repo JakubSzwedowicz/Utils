@@ -7,41 +7,63 @@
 #include <csignal>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 
 namespace Utils::Logging {
 
-// ── Global shared sinks ───────────────────────────────────────────────────────
-
 namespace {
 
-struct GlobalSinks {
-    std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> consoleSink;
-    std::shared_ptr<spdlog::sinks::basic_file_sink_mt> fileSink;
-    std::string currentFilename;
-    std::mutex mutex;
+class LoggerContext {
+   public:
+    static LoggerContext& instance() {
+        static LoggerContext ctx;
+        return ctx;
+    }
+
+    void add(const std::string& name, Logger* logger) {
+        std::lock_guard lock(m_registryMutex);
+        m_registry[name] = logger;
+    }
+
+    void remove(const std::string& name) {
+        std::lock_guard lock(m_registryMutex);
+        m_registry.erase(name);
+    }
+
+    Logger* find(const std::string& name) const {
+        std::lock_guard lock(m_registryMutex);
+        auto it = m_registry.find(name);
+        return it != m_registry.end() ? it->second : nullptr;
+    }
+
+    std::pair<std::shared_ptr<spdlog::sinks::stdout_color_sink_mt>, std::shared_ptr<spdlog::sinks::basic_file_sink_mt>>
+    getSinks(const std::string& filename) {
+        std::lock_guard lock(m_sinksMutex);
+        if (!m_consoleSink) {
+            m_consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+            m_consoleSink->set_level(spdlog::level::trace);
+        }
+        if (!m_fileSink || m_currentFilename != filename) {
+            m_fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filename, true);
+            m_fileSink->set_level(spdlog::level::trace);
+            m_currentFilename = filename;
+        }
+        return {m_consoleSink, m_fileSink};
+    }
+
+   private:
+    LoggerContext() = default;
+
+    mutable std::mutex m_registryMutex;
+    std::unordered_map<std::string, Logger*> m_registry;
+
+    std::mutex m_sinksMutex;
+    std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> m_consoleSink;
+    std::shared_ptr<spdlog::sinks::basic_file_sink_mt> m_fileSink;
+    std::string m_currentFilename;
 };
 
-GlobalSinks& globalSinks() {
-    static GlobalSinks s;
-    return s;
-}
-
-// Must be called with globalSinks().mutex held.
-void ensureFileSink_locked(GlobalSinks& gs, const std::string& filename) {
-    if (gs.fileSink && gs.currentFilename == filename) return;
-    gs.fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filename, true);
-    gs.fileSink->set_level(spdlog::level::trace);
-    gs.currentFilename = filename;
-}
-
 }  // namespace
-
-// ── Static member definitions ─────────────────────────────────────────────────
-
-std::unordered_map<std::string, Logger*> Logger::s_registry;
-std::mutex Logger::s_registryMutex;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 constexpr spdlog::level::level_enum logLevelToSpdlogImpl(LogLevel level) {
     switch (level) {
@@ -64,94 +86,122 @@ constexpr spdlog::level::level_enum logLevelToSpdlogImpl(LogLevel level) {
 
 consteval spdlog::level::level_enum logLevelToSpdlog(LogLevel level) { return logLevelToSpdlogImpl(level); }
 
-// ── Logger implementation ─────────────────────────────────────────────────────
-
-Logger::Logger(std::string name) : m_name(std::move(name)), m_logger(buildLogger(m_name, m_config)) {
-    {
-        std::lock_guard lock(s_registryMutex);
-        s_registry[m_name] = this;
-    }
+Logger::Logger(std::string name) : m_name(std::move(name)) {
+    LoggerContext::instance().add(m_name, this);
     pull();
+    // Fallback: no config published yet — build with defaults.
+    if (!m_logger.load()) m_logger.store(buildLogger(m_name, m_config, {}, true));
 }
 
-Logger::~Logger() {
-    std::lock_guard lock(s_registryMutex);
-    s_registry.erase(m_name);
-}
+Logger::~Logger() { LoggerContext::instance().remove(m_name); }
 
 Logger& Logger::getInstance() {
     static Logger instance("Root");
     return instance;
 }
 
-Logger* Logger::find(const std::string& name) {
-    std::lock_guard lock(s_registryMutex);
-    auto it = s_registry.find(name);
-    return it != s_registry.end() ? it->second : nullptr;
-}
+Logger* Logger::find(const std::string& name) { return LoggerContext::instance().find(name); }
 
 const std::string& Logger::getName() const { return m_name; }
 
 void Logger::onUpdate(const std::shared_ptr<const LoggerConfig>& newConfig) {
     if (!newConfig) return;
 
-    const bool filenameChanged = newConfig->filename != m_config->filename;
-
+    bool filenameChanged;
     {
-        std::lock_guard lock(m_mutex);
-        m_config = newConfig;
+        std::lock_guard lock(m_configMutex);
+        filenameChanged = newConfig->filename != m_config->filename;
     }
 
     if (filenameChanged) {
-        {
-            std::lock_guard gsLock(globalSinks().mutex);
-            ensureFileSink_locked(globalSinks(), newConfig->filename);
-        }
-        // Rebuild every live logger so they all share the new file sink.
-        std::lock_guard regLock(s_registryMutex);
-        for (auto& [name, logger] : s_registry) logger->rebuildLogger();
+        // Warm up the global file sink for the new filename before rebuilding
+        // so concurrent onUpdate calls from other loggers are safe — only the
+        // first one creates (and truncates) the file sink.
+        LoggerContext::instance().getSinks(newConfig->filename);
+        rebuildLogger(newConfig);
     } else {
+        {
+            std::lock_guard lock(m_configMutex);
+            m_config = newConfig;
+        }
         updateLoggerLevel();
     }
 }
 
+// Hot path — fully lock-free. m_logger is atomically loaded; the resulting
+// shared_ptr keeps the spdlog::logger alive even if another thread calls
+// rebuildLogger() and swaps it out mid-flight.
 template <LogLevel Level>
 void Logger::log(const char* file, int line, const char* func, std::string_view message) {
     spdlog::source_loc loc{file, line, func};
-    m_logger->log(loc, logLevelToSpdlog(Level), message);
+    m_logger.load()->log(loc, logLevelToSpdlog(Level), message);
 }
 
-void Logger::flush() { m_logger->flush(); }
+void Logger::flush() { m_logger.load()->flush(); }
 
 void Logger::addSink(std::shared_ptr<spdlog::sinks::sink> sink) {
     if (!sink) return;
-    m_logger->sinks().push_back(sink);
     sink->set_level(spdlog::level::trace);
+
+    std::shared_ptr<const LoggerConfig> cfg;
+    std::vector<std::shared_ptr<spdlog::sinks::sink>> extras;
+    bool useStd;
+    {
+        std::lock_guard lock(m_configMutex);
+        m_extraSinks.push_back(sink);
+        cfg = m_config;
+        extras = m_extraSinks;
+        useStd = m_useStandardSinks;
+    }
+    m_logger.store(buildLogger(m_name, cfg, extras, useStd));
 }
 
-void Logger::clearSinks() { m_logger->sinks().clear(); }
+void Logger::clearSinks() {
+    std::shared_ptr<const LoggerConfig> cfg;
+    {
+        std::lock_guard lock(m_configMutex);
+        m_extraSinks.clear();
+        m_useStandardSinks = false;
+        cfg = m_config;
+    }
+    m_logger.store(buildLogger(m_name, cfg, {}, false));
+}
 
 void Logger::updateLoggerLevel() {
-    std::lock_guard lock(m_mutex);
-    LogLevel threshold = m_config->globalLogLevel;
-    if (const auto it = m_config->loggersLogLevels.find(m_name); it != m_config->loggersLogLevels.end())
-        threshold = it->second;
-    m_logger->set_level(logLevelToSpdlogImpl(threshold));
+    std::shared_ptr<const LoggerConfig> cfg;
+    {
+        std::lock_guard lock(m_configMutex);
+        cfg = m_config;
+    }
+    LogLevel threshold = cfg->globalLogLevel;
+    if (const auto it = cfg->loggersLogLevels.find(m_name); it != cfg->loggersLogLevels.end()) threshold = it->second;
+    m_logger.load()->set_level(logLevelToSpdlogImpl(threshold));
 }
 
-void Logger::rebuildLogger() {
-    std::lock_guard lock(m_mutex);
-    m_logger->flush();
-    m_logger = buildLogger(m_name, m_config);
-    // Inline level update to avoid re-acquiring m_mutex.
-    LogLevel threshold = m_config->globalLogLevel;
-    if (const auto it = m_config->loggersLogLevels.find(m_name); it != m_config->loggersLogLevels.end())
-        threshold = it->second;
-    m_logger->set_level(logLevelToSpdlogImpl(threshold));
+void Logger::rebuildLogger(const std::shared_ptr<const LoggerConfig>& config) {
+    std::shared_ptr<const LoggerConfig> cfg;
+    std::vector<std::shared_ptr<spdlog::sinks::sink>> extras;
+    bool useStd;
+    {
+        std::lock_guard lock(m_configMutex);
+        m_config = config;
+        cfg = config;
+        extras = m_extraSinks;
+        useStd = m_useStandardSinks;
+    }
+
+    if (auto old = m_logger.load()) old->flush();
+    m_logger.store(buildLogger(m_name, cfg, extras, useStd));
+
+    // Level update reads m_config (just set above) and calls set_level on the
+    // newly stored spdlog logger.
+    updateLoggerLevel();
 }
 
 std::shared_ptr<spdlog::logger> Logger::buildLogger(const std::string& name,
-                                                    const std::shared_ptr<const LoggerConfig>& config) {
+                                                    const std::shared_ptr<const LoggerConfig>& config,
+                                                    const std::vector<std::shared_ptr<spdlog::sinks::sink>>& extraSinks,
+                                                    bool useStandardSinks) {
     struct LifecycleManager {
         LifecycleManager() {
             std::atexit([]() { spdlog::shutdown(); });
@@ -166,19 +216,18 @@ std::shared_ptr<spdlog::logger> Logger::buildLogger(const std::string& name,
     };
     static LifecycleManager s_lifecycleManager;
 
-    auto& gs = globalSinks();
-    std::lock_guard gsLock(gs.mutex);
+    std::vector<spdlog::sink_ptr> sinks;
 
-    if (!gs.consoleSink) {
-        gs.consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        gs.consoleSink->set_level(spdlog::level::trace);
+    if (useStandardSinks) {
+        auto [consoleSink, fileSink] = LoggerContext::instance().getSinks(config->filename);
+        sinks = {consoleSink, fileSink};
     }
-    ensureFileSink_locked(gs, config->filename);
 
-    auto logger = std::make_shared<spdlog::logger>(name, spdlog::sinks_init_list{gs.consoleSink, gs.fileSink});
+    for (const auto& s : extraSinks) sinks.push_back(s);
+
+    auto logger = std::make_shared<spdlog::logger>(name, sinks.begin(), sinks.end());
     logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [P%P:T%t] [%^%l%$] [%s:%#] [%n::%!] %v");
     logger->flush_on(spdlog::level::warn);
-
     return logger;
 }
 

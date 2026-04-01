@@ -1,10 +1,11 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <string_view>
-#include <unordered_map>
+#include <vector>
 
 #include "LoggerConfig.h"
 #include "PublishSubscribe/IPublisherSubscriber.h"
@@ -23,38 +24,39 @@ class Logger : public PublishSubscribe::ISubscriber<std::shared_ptr<const Logger
     explicit Logger(std::string name);
     ~Logger() override;
 
-    static Logger& getInstance();
-    static Logger* find(const std::string& name);
-
-    const std::string& getName() const;
-
-    void onUpdate(const std::shared_ptr<const LoggerConfig>& newConfig) override;
-
     template <LogLevel Level>
     void log(const char* file, int line, const char* func, std::string_view message);
+    void onUpdate(const std::shared_ptr<const LoggerConfig>& newConfig) override;
 
     void flush();
-
     void addSink(std::shared_ptr<spdlog::sinks::sink> sink);
-
+    // Remove all extra sinks and suppress the standard console+file sinks.
+    // Intended for tests that want to capture output exclusively.
     void clearSinks();
 
+    static Logger* find(const std::string& name);
+    const std::string& getName() const;
+    static Logger& getInstance();
+
    private:
+    void rebuildLogger(const std::shared_ptr<const LoggerConfig>& config);
     void updateLoggerLevel();
-    void rebuildLogger();
 
-    static std::shared_ptr<spdlog::logger> buildLogger(const std::string& name,
-                                                       const std::shared_ptr<const LoggerConfig>& config);
-
-    static std::unordered_map<std::string, Logger*> s_registry;
-    static std::mutex s_registryMutex;
+    // useStandardSinks=true  → {consoleSink, fileSink} + extraSinks
+    // useStandardSinks=false → extraSinks only  (used after clearSinks())
+    static std::shared_ptr<spdlog::logger> buildLogger(
+        const std::string& name, const std::shared_ptr<const LoggerConfig>& config,
+        const std::vector<std::shared_ptr<spdlog::sinks::sink>>& extraSinks, bool useStandardSinks);
 
    private:
     std::string m_name;
-    mutable std::mutex m_mutex;
-    std::shared_ptr<const LoggerConfig> m_config = std::make_shared<LoggerConfig>();
 
-    std::shared_ptr<spdlog::logger> m_logger;
+    mutable std::mutex m_configMutex;
+    std::shared_ptr<const LoggerConfig> m_config = std::make_shared<LoggerConfig>();
+    std::vector<std::shared_ptr<spdlog::sinks::sink>> m_extraSinks;
+    bool m_useStandardSinks = true;
+
+    std::atomic<std::shared_ptr<spdlog::logger>> m_logger;
 };
 
 }  // namespace Utils::Logging
