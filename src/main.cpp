@@ -1,6 +1,4 @@
 #include <iostream>
-#include <thread>
-#include <vector>
 
 #include "Logging/LoggerMacros.h"
 
