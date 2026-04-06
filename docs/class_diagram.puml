@@ -1,0 +1,270 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+top to bottom direction
+
+package "Utils::Runnables" {
+  interface IRunnable {
+    +{abstract} run() : void
+  }
+}
+
+package "Utils::PublishSubscribe" {
+  class PublishSubscribeManager<Message> {
+    +addPublisher(IPublisher<Message>*) : void
+    +removePublisher(IPublisher<Message>*) : void
+    +addSubscriber(ISubscriber<Message>*) : void
+    +removeSubscriber(ISubscriber<Message>*) : void
+    +publishMessage(Message) : void
+    +pullMessage() : optional<Message>
+    -{static} s_manager : unique_ptr<PublishSubscribeManager>
+    -{static} s_mutex : shared_mutex
+    -m_publishers : unordered_set<IPublisher<Message>*>
+    -m_subscribers : unordered_set<ISubscriber<Message>*>
+  }
+
+  interface IPublisher<Message> {
+    +{abstract} pull() : optional<Message>
+    #publish(Message) : void
+    -m_manager : PublishSubscribeManager<Message>*
+  }
+
+  class StatefulPublisher<Message> {
+    +pull() : optional<Message>
+    #publish(Message) : void
+    -m_stateMutex : shared_mutex
+    -m_lastMessage : optional<Message>
+  }
+
+  interface ISubscriber<Message> {
+    +{abstract} onUpdate(Message) : void
+    +pull() : void
+    -m_manager : PublishSubscribeManager<Message>*
+  }
+
+  IPublisher <|-- StatefulPublisher
+  IPublisher ..> PublishSubscribeManager
+  ISubscriber ..> PublishSubscribeManager
+}
+
+package "Utils::Providers" {
+  interface IParser<Source, Output> {
+    +{abstract} parse(Source) : Output
+  }
+
+  interface ISourceProvider<Source> {
+    +{abstract} poll() : optional<Source>
+  }
+
+  interface IResourceProvider<Resource> {
+    +{abstract} poll() : optional<Resource>
+  }
+
+  class FileSourceProvider {
+    +FileSourceProvider(path)
+    +setPath(path) : void
+    +run() : void
+    +poll() : optional<string>
+    -m_path : filesystem::path
+    -m_lastMtime : file_time_type
+    -m_pending : optional<string>
+    -m_logger : Logger
+  }
+
+  class ResourceProvider<Resource, Source> {
+    +run() : void
+    +poll() : optional<Resource>
+    -m_source : unique_ptr<ISourceProvider<Source>>
+    -m_parser : unique_ptr<IParser<Source, Resource>>
+    -m_pending : optional<Resource>
+  }
+
+  class QueuedResourceProvider<Resource, Source> {
+    +run() : void
+    +poll() : optional<Resource>
+    -m_source : unique_ptr<ISourceProvider<Source>>
+    -m_parser : unique_ptr<IParser<Source, Resource>>
+    -m_queue : queue<Resource>
+  }
+
+  IRunnable <|-- ISourceProvider
+  IRunnable <|-- IResourceProvider
+  ISourceProvider <|-- FileSourceProvider
+  IResourceProvider <|-- ResourceProvider
+  IResourceProvider <|-- QueuedResourceProvider
+  ResourceProvider o-- ISourceProvider
+  ResourceProvider o-- IParser
+  QueuedResourceProvider o-- ISourceProvider
+  QueuedResourceProvider o-- IParser
+}
+
+package "Utils::Logging" {
+  enum LogLevel {
+    DEBUG
+    INFO
+    WARNING
+    ERROR
+    CRITICAL
+    OFF
+  }
+
+  class LoggerConfig {
+    +filename : string
+    +globalLogLevel : LogLevel
+    +loggersLogLevels : unordered_map<string, LogLevel>
+    +operator==() : bool
+    +operator!=() : bool
+  }
+
+  class Logger {
+    +Logger(name : string)
+    +{static} getInstance() : Logger&
+    +{static} find(name) : Logger*
+    +getName() : string
+    +log<Level>(file, line, func, msg) : void
+    +flush() : void
+    +addSink(sink) : void
+    +clearSinks() : void
+    +onUpdate(LoggerConfig) : void
+    -rebuildLogger(config) : void
+    -updateLoggerLevel() : void
+    -{static} buildLogger(...) : shared_ptr<spdlog::logger>
+    -m_name : string
+    -m_configMutex : mutex
+    -m_config : shared_ptr<const LoggerConfig>
+    -m_extraSinks : vector<spdlog::sink>
+    -m_useStandardSinks : bool
+    -m_logger : atomic<shared_ptr<spdlog::logger>>
+  }
+
+  LoggerConfig --> LogLevel
+  ISubscriber <|-- Logger : "<shared_ptr<const LoggerConfig>>"
+}
+
+package "Utils::Config" {
+  package "ConfigParameters" {
+    interface IConfigSlotBase {
+      +{abstract} name() : string
+      +{abstract} description() : string
+      +{abstract} hasValue() : bool
+      +{abstract} validate() : bool
+      +{abstract} copyValueFrom(IConfigSlotBase) : void
+      +{abstract} setFromString(string_view) : bool
+      +{abstract} valueToString() : string
+      +{abstract} reset() : void
+    }
+
+    class ConfigSlot<T> {
+      +setValue(T) : void
+      +get() : optional<T>
+      +validate() : bool
+      -m_name : string
+      -m_description : string
+      -m_validator : function<bool(T)>
+      -m_value : optional<T>
+    }
+
+    class ConfigParameter<T> {
+      +get() : T
+      +set(T) : void
+      +reset() : void
+      +validate() : bool
+      +hasValue() : bool
+      -m_slot : ConfigSlot<T>*
+    }
+
+    class ConfigParametersContainer {
+      +buildConfigParam<T>(name, desc, default, validator) : ConfigParameter<T>
+      +applyDefaults() : void
+      +size() : size_t
+      +at(i) : IConfigSlotBase&
+      +equals(other) : bool
+      -m_slots : vector<unique_ptr<IConfigSlotBase>>
+      -m_defaultApplicators : vector<function<void()>>
+    }
+
+    IConfigSlotBase <|-- ConfigSlot
+    ConfigParameter o-- ConfigSlot
+    ConfigParametersContainer o-- IConfigSlotBase
+  }
+
+  package "ConfigParser" {
+    class CLIConfigParser<Config> {
+      +parse(pair<int,char**>) : shared_ptr<Config>
+      -{static} parseArgs(argc, argv) : unordered_map<string,string>
+      -m_logger : Logger
+    }
+
+    class JsonConfigParser<Config> {
+      +parse(json : string) : shared_ptr<Config>
+      +readConfig(istream) : shared_ptr<Config>
+      +writeConfig(Config, ostream) : int
+      -m_logger : Logger
+    }
+
+    IParser <|-- CLIConfigParser : "<pair<int,char**>, shared_ptr<Config>>"
+    IParser <|-- JsonConfigParser : "<string, shared_ptr<Config>>"
+  }
+
+  package "ConfigProviders" {
+    interface IConfigProvider<Config> {
+      +{abstract} getConfig() : shared_ptr<const Config>
+      +{abstract} name() : string_view
+    }
+
+    class DefaultConfigProvider<Config> {
+      +run() : void
+      +poll() : optional<shared_ptr<Config>>
+      +getConfig() : shared_ptr<const Config>
+      +name() : string_view
+      -m_config : shared_ptr<Config>
+    }
+
+    class CLIConfigProvider<Config> {
+      +run() : void
+      +poll() : optional<shared_ptr<Config>>
+      +getConfig() : shared_ptr<const Config>
+      +name() : string_view
+      -m_parser : CLIConfigParser<Config>
+      -m_config : shared_ptr<Config>
+    }
+
+    class JsonConfigProvider<Config> {
+      +run() : void
+      +poll() : optional<shared_ptr<Config>>
+      +getConfig() : shared_ptr<const Config>
+      +name() : string_view
+      -m_resource : ResourceProvider<shared_ptr<Config>, string>
+      -m_lastConfig : shared_ptr<Config>
+    }
+
+    IResourceProvider <|-- IConfigProvider
+    IConfigProvider <|-- DefaultConfigProvider
+    IConfigProvider <|-- CLIConfigProvider
+    IConfigProvider <|-- JsonConfigProvider
+    CLIConfigProvider o-- CLIConfigParser
+    JsonConfigProvider o-- ResourceProvider
+  }
+
+  class ConfigPublisher<Config> {
+    +setConfig(shared_ptr<const Config>) : void
+    +getConfig() : shared_ptr<const Config>
+  }
+
+  class ConfigManager<Config, ...Providers> {
+    +run() : void
+    +setConfig(shared_ptr<const Config>) : void
+    +getProvider<T>() : T&
+    +getLoggerConfig() : shared_ptr<const LoggerConfig>
+    +resolve() : void
+    -m_providers : tuple<unique_ptr<Providers>..., unique_ptr<DefaultProvider>>
+    -m_logger : Logger
+  }
+
+  StatefulPublisher <|-- ConfigPublisher
+  ConfigPublisher <|-- ConfigManager : "<Config>"
+  ConfigPublisher <|-- ConfigManager : "<LoggerConfig>"
+  IRunnable <|-- ConfigManager
+  ConfigManager o-- IConfigProvider
+}
+@enduml
