@@ -141,7 +141,10 @@ void Logger::log(const char* file, int line, const char* func, std::string_view 
     m_logger->log(loc, logLevelToSpdlog(Level), message);
 }
 
-void Logger::flush() { std::shared_lock lk(m_loggerMutex); m_logger->flush(); }
+void Logger::flush() {
+    std::shared_lock lk(m_loggerMutex);
+    m_logger->flush();
+}
 
 void Logger::addSink(std::shared_ptr<spdlog::sinks::sink> sink) {
     if (!sink) return;
