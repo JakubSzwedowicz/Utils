@@ -90,7 +90,10 @@ Logger::Logger(std::string name) : m_name(std::move(name)) {
     LoggerContext::instance().add(m_name, this);
     pull();
     // Fallback: no config published yet — build with defaults.
-    if (!m_logger.load()) m_logger.store(buildLogger(m_name, m_config, {}, true));
+    {
+        std::unique_lock lk(m_loggerMutex);
+        if (!m_logger) m_logger = buildLogger(m_name, m_config, {}, true);
+    }
 }
 
 Logger::~Logger() { LoggerContext::instance().remove(m_name); }
@@ -134,10 +137,11 @@ void Logger::onUpdate(const std::shared_ptr<const LoggerConfig>& newConfig) {
 template <LogLevel Level>
 void Logger::log(const char* file, int line, const char* func, std::string_view message) {
     spdlog::source_loc loc{file, line, func};
-    m_logger.load()->log(loc, logLevelToSpdlog(Level), message);
+    std::shared_lock lk(m_loggerMutex);
+    m_logger->log(loc, logLevelToSpdlog(Level), message);
 }
 
-void Logger::flush() { m_logger.load()->flush(); }
+void Logger::flush() { std::shared_lock lk(m_loggerMutex); m_logger->flush(); }
 
 void Logger::addSink(std::shared_ptr<spdlog::sinks::sink> sink) {
     if (!sink) return;
@@ -153,7 +157,10 @@ void Logger::addSink(std::shared_ptr<spdlog::sinks::sink> sink) {
         extras = m_extraSinks;
         useStd = m_useStandardSinks;
     }
-    m_logger.store(buildLogger(m_name, cfg, extras, useStd));
+    {
+        std::unique_lock lk(m_loggerMutex);
+        m_logger = buildLogger(m_name, cfg, extras, useStd);
+    }
 }
 
 void Logger::clearSinks() {
@@ -164,7 +171,10 @@ void Logger::clearSinks() {
         m_useStandardSinks = false;
         cfg = m_config;
     }
-    m_logger.store(buildLogger(m_name, cfg, {}, false));
+    {
+        std::unique_lock lk(m_loggerMutex);
+        m_logger = buildLogger(m_name, cfg, {}, false);
+    }
 }
 
 void Logger::updateLoggerLevel() {
@@ -175,7 +185,8 @@ void Logger::updateLoggerLevel() {
     }
     LogLevel threshold = cfg->globalLogLevel;
     if (const auto it = cfg->loggersLogLevels.find(m_name); it != cfg->loggersLogLevels.end()) threshold = it->second;
-    m_logger.load()->set_level(logLevelToSpdlogImpl(threshold));
+    std::shared_lock lk(m_loggerMutex);
+    m_logger->set_level(logLevelToSpdlogImpl(threshold));
 }
 
 void Logger::rebuildLogger(const std::shared_ptr<const LoggerConfig>& config) {
@@ -190,8 +201,14 @@ void Logger::rebuildLogger(const std::shared_ptr<const LoggerConfig>& config) {
         useStd = m_useStandardSinks;
     }
 
-    if (auto old = m_logger.load()) old->flush();
-    m_logger.store(buildLogger(m_name, cfg, extras, useStd));
+    {
+        std::shared_lock lk(m_loggerMutex);
+        if (m_logger) m_logger->flush();
+    }
+    {
+        std::unique_lock lk(m_loggerMutex);
+        m_logger = buildLogger(m_name, cfg, extras, useStd);
+    }
 
     // Level update reads m_config (just set above) and calls set_level on the
     // newly stored spdlog logger.

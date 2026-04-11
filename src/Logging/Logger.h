@@ -1,8 +1,8 @@
 #pragma once
 
-#include <atomic>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -56,7 +56,8 @@ class Logger : public PublishSubscribe::ISubscriber<std::shared_ptr<const Logger
     std::vector<std::shared_ptr<spdlog::sinks::sink>> m_extraSinks;
     bool m_useStandardSinks = true;
 
-    std::atomic<std::shared_ptr<spdlog::logger>> m_logger;
+    mutable std::shared_mutex m_loggerMutex;
+    std::shared_ptr<spdlog::logger> m_logger;
 };
 
 }  // namespace Utils::Logging
